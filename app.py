@@ -117,7 +117,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
             else:
                 df["소재지도로명주소"] = df[address_col]
 
-            df = df[["위도", "경도", "관광정보명", "소재지도로명주소"]]
+            df = df[["위도", "경도", "관광지명", "소재지도로명주소"]]
 
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
