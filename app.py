@@ -25,46 +25,54 @@ VECTOR_DB_PATH = "faiss_tourist_attractions"
 
 # 로드할 개별 관광지 CSV 파일 목록을 직접 지정합니다.
 # **여기를 실제 CSV 파일 경로에 맞게 수정해주세요!**
-# 예시:
+# Streamlit Cloud에서는 상대 경로를 사용해야 합니다.
 TOUR_CSV_FILES = [
-    "./경기도역사관광지현황.csv",
-    "./경기도자연관광지현황.csv",
-    "./경기도체험관광지현황.csv",
-    "./경기도테마관광지현황.csv",
-    "./관광지정보현황(제공표준).csv",
-    "./관광지현황.csv",
+    "./tour_data/경기도역사관광지현황.csv",
+    "./tour_data/경기도자연관광지현황.csv",
+    "./tour_data/경기도체험관광지현황.csv",
+    "./tour_data/경기도테마관광지현황.csv",
+    "./tour_data/관광지정보현황(제공표준).csv",
+    "./tour_data/관광지현황.csv",
     # 필요에 따라 다른 CSV 파일들을 여기에 추가하세요.
 ]
 
-# **UTF-8 인코딩을 사용할 파일들을 여기에 명시합니다.**
-UTF8_ENCODING_FILES = [
-    "./2025661749210500635.csv",
-    "./2025661749210351982.csv",
-    # 추가적으로 UTF-8 파일이 있다면 여기에 더 넣으세요.
-]
-
-# --- 초기 파일 존재 여부 확인 (전체 파일 목록으로 변경) ---
+# --- 초기 파일 존재 여부 확인 ---
 # 모든 필수 데이터 파일이 존재하는지 확인합니다.
 required_files = TOUR_CSV_FILES
 for f_path in required_files:
     if not os.path.exists(f_path):
-        st.error(f"필수 데이터 파일 '{f_path}'을(를) 찾을 수 없습니다. 경로를 확인해주세요.")
+        st.error(f"필수 데이터 파일 '{f_path}'을(를) 찾을 수 없습니다. 경로를 확인해주세요. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
         st.stop()
 
 
 # --- 1. 설정 및 초기화 함수 ---
 def setup_environment():
-    """환경 변수를 로드하고 OpenAI API 키를 반환합니다."""
-    return os.getenv("OPENAI_API_KEY")
+    """
+    환경 변수 또는 Streamlit secrets에서 OpenAI API 키를 로드합니다.
+    Streamlit Cloud 환경에서는 st.secrets를 우선적으로 사용합니다.
+    로컬 환경에서는 .env 파일을 로드하거나 시스템 환경 변수에서 가져옵니다.
+    """
+    if 'OPENAI_API_KEY' in st.secrets:
+        st.success("✅ OpenAI API 키를 Streamlit Secrets에서 성공적으로 로드했습니다.")
+        return st.secrets['OPENAI_API_KEY']
+    else:
+        load_dotenv() # 로컬 개발 시 .env 파일에서 로드 시도
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            st.success("✅ OpenAI API 키를 환경 변수(.env 파일 또는 시스템 환경 변수)에서 성공적으로 로드했습니다.")
+        else:
+            st.error("❌ OpenAI API 키를 찾을 수 없습니다. Streamlit Cloud에서는 secrets.toml에 키를 설정하거나, 로컬에서는 .env 파일을 확인해주세요.")
+        return api_key
+
 
 def initialize_streamlit_app():
     """Streamlit 앱의 기본 페이지 설정 및 제목을 초기화합니다."""
     st.title("🗺️ 위치 기반 관광지 추천 및 여행 계획 챗봇")
 
-# --- 2. 데이터 로드 및 전처리 함수 (파일별 인코딩 적용) ---
+# --- 2. 데이터 로드 및 전처리 함수 ---
 @st.cache_data
-def load_specific_tour_data(file_paths_list, utf8_files):
-    """지정된 CSV 파일 목록을 로드하고, 특정 파일에만 UTF-8 인코딩을 적용하여 유연하게 병합합니다."""
+def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
+    """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
     combined_df = pd.DataFrame()
 
     if not file_paths_list:
@@ -73,17 +81,18 @@ def load_specific_tour_data(file_paths_list, utf8_files):
 
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
-            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
+            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
-        current_encoding = 'utf-8' if file_path in utf8_files else 'cp949'
+        # 모든 파일에 CP949 인코딩 적용
+        current_encoding = 'cp949'
 
         try:
             df = pd.read_csv(file_path, encoding=current_encoding)
             df.columns = df.columns.str.strip()
 
             if "위도" not in df.columns or "경도" not in df.columns:
-                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜁니다.")
+                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜠니다.")
                 continue
 
             name_col = None
@@ -122,9 +131,9 @@ def load_specific_tour_data(file_paths_list, utf8_files):
     return combined_df
 
 
-# --- 벡터스토어 로딩 및 캐싱 (파일별 인코딩 적용) ---
+# --- 벡터스토어 로딩 및 캐싱 ---
 @st.cache_resource
-def load_and_create_vectorstore_from_specific_files(tour_csv_files_list, utf8_files):
+def load_and_create_vectorstore_from_specific_files(tour_csv_files_list): # utf8_files 파라미터 제거
     """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다."""
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
@@ -132,7 +141,8 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list, utf8_fi
             st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
             continue
 
-        current_encoding = 'utf-8' if file_path in utf8_files else 'cp949'
+        # 모든 파일에 CP949 인코딩 적용
+        current_encoding = 'cp949'
 
         try:
             city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
@@ -140,7 +150,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list, utf8_fi
         except Exception as e:
             st.warning(f"'{os.path.basename(file_path)}' 파일 ({current_encoding} 인코딩 시도) 로드 중 오류 발생 (벡터스토어): {e}")
 
-    all_documents = all_city_tour_docs # 반려동물, 나이별 선호도 데이터 제거
+    all_documents = all_city_tour_docs
 
     if not all_documents:
         st.error("벡터스토어를 생성할 문서가 없습니다. CSV 파일 경로와 내용을 확인해주세요.")
@@ -154,12 +164,13 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list, utf8_fi
     return vectorstore
 
 @st.cache_resource()
-def get_vectorstore_cached(tour_csv_files_list, utf8_files):
+def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제거
     """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
-    cache_key = (tuple(tour_csv_files_list), tuple(utf8_files))
-    
+    cache_key = tuple(sorted(tour_csv_files_list)) # 캐시 키에서 utf8_files 제거
+
     if os.path.exists(VECTOR_DB_PATH):
         try:
+            st.info("기존 벡터 DB를 로드 중...")
             return FAISS.load_local(
                 VECTOR_DB_PATH,
                 OpenAIEmbeddings(),
@@ -167,9 +178,10 @@ def get_vectorstore_cached(tour_csv_files_list, utf8_files):
             )
         except Exception as e:
             st.warning(f"기존 벡터 DB 로딩 실패: {e}. 새로 생성합니다.")
-            return load_and_create_vectorstore_from_specific_files(tour_csv_files_list, utf8_files)
+            return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
     else:
-        return load_and_create_vectorstore_from_specific_files(tour_csv_files_list, utf8_files)
+        st.info("새로운 벡터 DB를 생성 중...")
+        return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
 
 
 # --- Haversine distance function ---
@@ -309,16 +321,14 @@ def get_qa_chain(_vectorstore):
 if __name__ == "__main__":
     openai_api_key = setup_environment()
     if not openai_api_key:
-        st.error("OPENAI_API_KEY 환경 변수가 설정되지 않았습니다. .env 파일을 확인하거나 직접 설정해주세요.")
         st.stop()
 
     initialize_streamlit_app()
 
-    vectorstore = get_vectorstore_cached(TOUR_CSV_FILES, UTF8_ENCODING_FILES)
+    vectorstore = get_vectorstore_cached(TOUR_CSV_FILES) # 인자 제거
     qa_chain = get_qa_chain(vectorstore)
 
-    tour_data_df = load_specific_tour_data(TOUR_CSV_FILES, UTF8_ENCODING_FILES)
-    # pet_places_set = load_pet_data(PET_FRIENDLY_DATA_PATH) # 반려동물 데이터 로드 제거
+    tour_data_df = load_specific_tour_data(TOUR_CSV_FILES) # 인자 제거
 
     age, travel_style_list, current_user_lat, current_user_lon, \
     trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
@@ -407,7 +417,6 @@ if __name__ == "__main__":
                             else:
                                 pass
                         else:
-                            # '거리(km):' 포함된 라인은 LLM이 출력했더라도 제외
                             if not re.search(r"거리\(km\):", line):
                                 processed_output_lines.append(line)
 
