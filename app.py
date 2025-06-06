@@ -226,8 +226,8 @@ def get_user_inputs_ui():
         default_lon = st.session_state.get("user_lon", 126.9780) # 서울 시청 기본 경도
 
         st.subheader("직접 위치 입력 (선택 사항)")
-        manual_lat = st.number_input("위도", value=float(default_lat), format="%.6f", key="manual_lat_input")
-        manual_lon = st.number_input("경도", value=float(default_lon), format="%.6f", key="manual_lon_input")
+        manual_lat = st.number_input("위도", value=float(default_lat), format="%.7f", key="manual_lat_input")
+        manual_lon = st.number_input("경도", value=float(default_lon), format="%.7f", key="manual_lon_input")
 
         if manual_lat != 0.0 or manual_lon != 0.0:
             user_lat_final = manual_lat
@@ -312,7 +312,7 @@ def get_qa_chain(_vectorstore):
 """
     )
     document_chain = create_stuff_documents_chain(llm, qa_prompt)
-    retriever = _vectorstore.as_retriever(search_kwargs={"k": 10})
+    retriever = _vectorstore.as_retriever(search_kwargs={"k": 15})
     retrieval_chain = create_retrieval_chain(retriever, document_chain)
 
     return retrieval_chain
