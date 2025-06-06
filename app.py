@@ -27,19 +27,19 @@ VECTOR_DB_PATH = "faiss_tourist_attractions"
 # **여기를 실제 CSV 파일 경로에 맞게 수정해주세요!**
 # 예시:
 TOUR_CSV_FILES = [
-    "C:/RAG_TEAM/team/tour_data/경기도역사관광지현황.csv",
-    "C:/RAG_TEAM/team/tour_data/경기도자연관광지현황.csv",
-    "C:/RAG_TEAM/team/tour_data/경기도체험관광지현황.csv",
-    "C:/RAG_TEAM/team/tour_data/경기도테마관광지현황.csv",
-    "C:/RAG_TEAM/team/tour_data/관광지정보현황(제공표준).csv",
-    "C:/RAG_TEAM/team/tour_data/관광지현황.csv",
+    "./경기도역사관광지현황.csv",
+    "./경기도자연관광지현황.csv",
+    "./경기도체험관광지현황.csv",
+    "./경기도테마관광지현황.csv",
+    "./관광지정보현황(제공표준).csv",
+    "./관광지현황.csv",
     # 필요에 따라 다른 CSV 파일들을 여기에 추가하세요.
 ]
 
 # **UTF-8 인코딩을 사용할 파일들을 여기에 명시합니다.**
 UTF8_ENCODING_FILES = [
-    "C:/RAG_TEAM/team/tour_data/2025661749210500635.csv",
-    "C:/RAG_TEAM/team/tour_data/2025661749210351982.csv",
+    "./2025661749210500635.csv",
+    "./2025661749210351982.csv",
     # 추가적으로 UTF-8 파일이 있다면 여기에 더 넣으세요.
 ]
 
