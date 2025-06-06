@@ -27,12 +27,12 @@ VECTOR_DB_PATH = "faiss_tourist_attractions"
 # **여기를 실제 CSV 파일 경로에 맞게 수정해주세요!**
 # Streamlit Cloud에서는 상대 경로를 사용해야 합니다.
 TOUR_CSV_FILES = [
-    "./tour_data/경기도역사관광지현황.csv",
-    "./tour_data/경기도자연관광지현황.csv",
-    "./tour_data/경기도체험관광지현황.csv",
-    "./tour_data/경기도테마관광지현황.csv",
-    "./tour_data/관광지정보현황(제공표준).csv",
-    "./tour_data/관광지현황.csv",
+    "./경기도역사관광지현황.csv",
+    "./경기도자연관광지현황.csv",
+    "./경기도체험관광지현황.csv",
+    "./경기도테마관광지현황.csv",
+    "./관광지정보현황(제공표준).csv",
+    "./관광지현황.csv",
     # 필요에 따라 다른 CSV 파일들을 여기에 추가하세요.
 ]
 
