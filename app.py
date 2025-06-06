@@ -96,7 +96,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
                 continue
 
             name_col = None
-            for candidate in ["관광지명", "시설명", "명칭", "이름", "콘텐츠명", "콘텐츠명칭","명칭","관광지"]:
+            for candidate in ["관광지명",'관광정보명',"관광지"]:
                 if candidate in df.columns:
                     name_col = candidate
                     break
