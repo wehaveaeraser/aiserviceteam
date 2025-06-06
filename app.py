@@ -107,7 +107,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
                 df["관광지명"] = df[name_col]
 
             address_col = None
-            for candidate in ["소재지도로명주소", "주소", "도로명주소", "지번주소"]:
+            for candidate in ["정제도로명주소","정제지번주소","소재지도로명주소","소재지지번주소","관광지소재지지번주소","관광지소재지도로명주소"]:
                 if candidate in df.columns:
                     address_col = candidate
                     break
@@ -117,7 +117,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
             else:
                 df["소재지도로명주소"] = df[address_col]
 
-            df = df[["위도", "경도", "관광지명", "소재지도로명주소"]]
+            df = df[["위도", "경도", "관광정보명", "소재지도로명주소"]]
 
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
