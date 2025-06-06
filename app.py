@@ -11,13 +11,11 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
-from langchain_community.document_loaders import CSVLoader # CSVLoader는 이제 직접적인 문서 로드에는 사용되지 않고, 예시용으로 남겨둡니다.
+from langchain_community.document_loaders import CSVLoader
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document # Document 클래스 추가 임포트
 from dotenv import load_dotenv
-
 load_dotenv()
 
 st.set_page_config(page_title="관광지 추천 챗봇", layout="wide")
@@ -26,18 +24,20 @@ st.set_page_config(page_title="관광지 추천 챗봇", layout="wide")
 VECTOR_DB_PATH = "faiss_tourist_attractions"
 
 # 로드할 개별 관광지 CSV 파일 목록을 직접 지정합니다.
+# **여기를 실제 CSV 파일 경로에 맞게 수정해주세요!**
 # Streamlit Cloud에서는 상대 경로를 사용해야 합니다.
 TOUR_CSV_FILES = [
-    "./경기도역사관광지현황.csv",
-    "./경기도자연관광지현황.csv",
-    "./경기도체험관광지현황.csv",
-    "./경기도테마관광지현황.csv",
-    "./관광지정보현황(제공표준).csv",
-    "./관광지현황.csv",
+    "./tour_data/경기도역사관광지현황.csv",
+    "./tour_data/경기도자연관광지현황.csv",
+    "./tour_data/경기도체험관광지현황.csv",
+    "./tour_data/경기도테마관광지현황.csv",
+    "./tour_data/관광지정보현황(제공표준).csv",
+    "./tour_data/관광지현황.csv",
     # 필요에 따라 다른 CSV 파일들을 여기에 추가하세요.
 ]
 
 # --- 초기 파일 존재 여부 확인 ---
+# 모든 필수 데이터 파일이 존재하는지 확인합니다.
 required_files = TOUR_CSV_FILES
 for f_path in required_files:
     if not os.path.exists(f_path):
@@ -69,10 +69,10 @@ def initialize_streamlit_app():
     """Streamlit 앱의 기본 페이지 설정 및 제목을 초기화합니다."""
     st.title("🗺️ 위치 기반 관광지 추천 및 여행 계획 챗봇")
 
-# --- 2. 데이터 로드 및 전처리 함수 (Document 메타데이터에 위도, 경도 포함) ---
+# --- 2. 데이터 로드 및 전처리 함수 ---
 @st.cache_data
-def load_specific_tour_data(file_paths_list):
-    """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 유연하게 병합합니다."""
+def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
+    """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
     combined_df = pd.DataFrame()
 
     if not file_paths_list:
@@ -81,10 +81,11 @@ def load_specific_tour_data(file_paths_list):
 
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
-            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜁니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
+            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
-        current_encoding = 'cp949' # 모든 파일에 CP949 인코딩 적용
+        # 모든 파일에 CP949 인코딩 적용
+        current_encoding = 'cp949'
 
         try:
             df = pd.read_csv(file_path, encoding=current_encoding)
@@ -95,7 +96,7 @@ def load_specific_tour_data(file_paths_list):
                 continue
 
             name_col = None
-            for candidate in ["관광지명", "시설명", "명칭", "이름", "콘텐츠명", "콘텐츠명칭","명칭","관광지"]:
+            for candidate in ["관광지명", "관광정보명","관광지"]:
                 if candidate in df.columns:
                     name_col = candidate
                     break
@@ -106,7 +107,7 @@ def load_specific_tour_data(file_paths_list):
                 df["관광지명"] = df[name_col]
 
             address_col = None
-            for candidate in ["소재지도로명주소", "주소", "도로명주소", "지번주소"]:
+            for candidate in ["정제도로명주소","정제지번주소","소재지도로명주소","소재지지번주소","관광지소재지지번주소","관광지소재지도로명주소"]:
                 if candidate in df.columns:
                     address_col = candidate
                     break
@@ -115,12 +116,6 @@ def load_specific_tour_data(file_paths_list):
                 df["소재지도로명주소"] = "주소 없음"
             else:
                 df["소재지도로명주소"] = df[address_col]
-
-            # 최종적으로 필요한 컬럼만 선택하여 병합
-            # 여기서 위도, 경도 값이 숫자로 변환 가능한지 확인하고 변환합니다.
-            df['위도'] = pd.to_numeric(df['위도'], errors='coerce')
-            df['경도'] = pd.to_numeric(df['경도'], errors='coerce')
-            df = df.dropna(subset=['위도', '경도']) # NaN 값 제거 (위도/경도 변환 실패 시)
 
             df = df[["위도", "경도", "관광지명", "소재지도로명주소"]]
 
@@ -136,70 +131,26 @@ def load_specific_tour_data(file_paths_list):
     return combined_df
 
 
-# --- 벡터스토어 로딩 및 캐싱 (Document 메타데이터에 위도, 경도 포함) ---
+# --- 벡터스토어 로딩 및 캐싱 ---
 @st.cache_resource
-def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
-    """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다. Document 메타데이터에 위도, 경도를 포함합니다."""
-    all_documents = []
+def load_and_create_vectorstore_from_specific_files(tour_csv_files_list): # utf8_files 파라미터 제거
+    """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다."""
+    all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
             st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
             continue
 
-        current_encoding = 'cp949' # 모든 파일에 CP949 인코딩 적용
+        # 모든 파일에 CP949 인코딩 적용
+        current_encoding = 'cp949'
 
         try:
-            df = pd.read_csv(file_path, encoding=current_encoding)
-            df.columns = df.columns.str.strip()
-
-            # 컬럼명 매핑 (load_specific_tour_data와 동일하게 처리)
-            name_col = None
-            for candidate in ["관광지명", "시설명", "명칭", "이름", "콘텐츠명", "콘텐츠명칭","명칭","관광지"]:
-                if candidate in df.columns:
-                    name_col = candidate
-                    break
-            if name_col:
-                df['관광지명'] = df[name_col]
-            else:
-                df['관광지명'] = '이름 없음'
-
-            address_col = None
-            for candidate in ["소재지도로명주소", "주소", "도로명주소", "지번주소"]:
-                if candidate in df.columns:
-                    address_col = candidate
-                    break
-            if address_col:
-                df['소재지도로명주소'] = df[address_col]
-            else:
-                df['소재지도로명주소'] = '주소 없음'
-
-            # 위도, 경도 컬럼 확인 및 숫자 변환
-            if "위도" not in df.columns or "경도" not in df.columns:
-                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 문서화에서 제외됩니다.")
-                continue
-            
-            df['위도'] = pd.to_numeric(df['위도'], errors='coerce')
-            df['경도'] = pd.to_numeric(df['경도'], errors='coerce')
-            df = df.dropna(subset=['위도', '경도']) # 변환 후 NaN 된 행 제거
-
-            # 각 행을 Document 객체로 변환
-            for index, row in df.iterrows():
-                # 'page_content'에 LLM이 참조할 주요 내용을 구성
-                page_content = f"관광지명: {row['관광지명']}\n주소: {row['소재지도로명주소']}\n"
-                # 여기에 추가적으로 필요한 정보 (예: 설명, 특징 등)를 포함할 수 있습니다.
-                
-                # 'metadata'에 위도, 경도를 명시적으로 추가
-                metadata = {
-                    "source": file_path,
-                    "관광지명": row['관광지명'],
-                    "주소": row['소재지도로명주소'],
-                    "위도": row['위도'],
-                    "경도": row['경도']
-                }
-                all_documents.append(Document(page_content=page_content, metadata=metadata))
-
+            city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
+            all_city_tour_docs.extend(city_tour_loader.load())
         except Exception as e:
             st.warning(f"'{os.path.basename(file_path)}' 파일 ({current_encoding} 인코딩 시도) 로드 중 오류 발생 (벡터스토어): {e}")
+
+    all_documents = all_city_tour_docs
 
     if not all_documents:
         st.error("벡터스토어를 생성할 문서가 없습니다. CSV 파일 경로와 내용을 확인해주세요.")
@@ -213,10 +164,10 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     return vectorstore
 
 @st.cache_resource()
-def get_vectorstore_cached(tour_csv_files_list):
+def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제거
     """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
-    cache_key = tuple(sorted(tour_csv_files_list))
-    
+    cache_key = tuple(sorted(tour_csv_files_list)) # 캐시 키에서 utf8_files 제거
+
     if os.path.exists(VECTOR_DB_PATH):
         try:
             st.info("기존 벡터 DB를 로드 중...")
@@ -227,10 +178,10 @@ def get_vectorstore_cached(tour_csv_files_list):
             )
         except Exception as e:
             st.warning(f"기존 벡터 DB 로딩 실패: {e}. 새로 생성합니다.")
-            return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
+            return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
     else:
         st.info("새로운 벡터 DB를 생성 중...")
-        return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
+        return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
 
 
 # --- Haversine distance function ---
@@ -258,9 +209,6 @@ def get_user_inputs_ui():
 
     user_lat_final, user_lon_final = None, None
 
-    # 디버깅 정보 추가: 위치 감지 상태 확인
-    st.session_state.location_status = "초기화 대기"
-
     if location and "latitude" in location and "longitude" in location:
         temp_lat = location.get("latitude")
         temp_lon = location.get("longitude")
@@ -268,17 +216,12 @@ def get_user_inputs_ui():
             user_lat_final = temp_lat
             user_lon_final = temp_lon
             st.success(f"📍 현재 위치: 위도 {user_lat_final:.5f}, 경도 {user_lon_final:.5f}")
-            st.session_state.location_status = "성공적으로 위치 감지"
         else:
-            st.warning("📍 위치 정보를 불러오지 못했습니다. 수동으로 입력해 주세요. (위도/경도 값이 None)")
-            st.session_state.location_status = "위치 감지 실패 (None 값)"
+            st.warning("📍 위치 정보를 불러오지 못했습니다. 수동으로 입력해 주세요.")
     else:
-        st.warning("위치 정보를 사용할 수 없습니다. 수동으로 위도, 경도를 입력해 주세요. (streamlit_geolocation 응답 없음)")
-        st.session_state.location_status = "위치 감지 실패 (응답 없음)"
+        st.warning("위치 정보를 사용할 수 없습니다. 수동으로 위도, 경도를 입력해 주세요.")
 
-    # 현재 사용될 위도/경도를 명확히 출력 (디버깅 목적)
     if user_lat_final is None or user_lon_final is None:
-        st.info("💡 위치 감지에 실패하여 기본값 또는 수동 입력값이 사용됩니다.")
         default_lat = st.session_state.get("user_lat", 37.5665) # 서울 시청 기본 위도
         default_lon = st.session_state.get("user_lon", 126.9780) # 서울 시청 기본 경도
 
@@ -289,16 +232,10 @@ def get_user_inputs_ui():
         if manual_lat != 0.0 or manual_lon != 0.0:
             user_lat_final = manual_lat
             user_lon_final = manual_lon
-            st.session_state.location_status = "수동 입력된 위치 사용"
         else:
-            user_lat_final = None # 여전히 유효한 값 없음
+            user_lat_final = None
             user_lon_final = None
             st.error("유효한 위도 및 경도 값이 입력되지 않았습니다. 0이 아닌 값을 입력해주세요.")
-            st.session_state.location_status = "유효한 위치 없음"
-    
-    st.write(f"**최종 사용될 사용자 위도:** {user_lat_final}")
-    st.write(f"**최종 사용될 사용자 경도:** {user_lon_final}")
-    st.write(f"**위치 감지 상태:** {st.session_state.location_status}")
 
     st.session_state.user_lat = user_lat_final
     st.session_state.user_lon = user_lon_final
@@ -311,7 +248,7 @@ def get_user_inputs_ui():
 
     return age, travel_style, user_lat_final, user_lon_final, trip_duration_days, estimated_budget, num_travelers, special_requests
 
-# --- 4. 추천 로직 함수 (Langchain API 변경: custom_retriever 사용) ---
+# --- 4. 추천 로직 함수 (Langchain API 변경: create_retrieval_chain 사용) (프롬프트 수정) ---
 @st.cache_resource
 def get_qa_chain(_vectorstore):
     llm = ChatOpenAI(model_name="gpt-4o", temperature=0.7)
@@ -320,9 +257,10 @@ def get_qa_chain(_vectorstore):
     qa_prompt = PromptTemplate.from_template(
         """
 당신은 위치 기반 여행지 추천 및 상세 여행 계획 수립 챗봇입니다.
-**특히 사용자의 현재 위치({user_lat}, {user_lon})에서 가장 가까운 장소들을 최우선으로 고려하여 추천하고 계획을 세워주세요.**
 사용자의 나이대, 여행 성향, 현재 위치 정보, 그리고 다음의 추가 정보를 참고하여 사용자가 입력한 질문에 가장 적합한 관광지를 추천하고, 이를 바탕으로 상세한 여행 계획을 수립해 주세요.
 **관광지 추천 시 사용자 위치로부터의 거리는 시스템이 자동으로 계산하여 추가할 것이므로, 답변에서 거리를 직접 언급하지 마십시오.**
+특히, 사용자의 현재 위치({user_lat}, {user_lon})에서 가까운 장소들을 우선적으로 고려하여 추천하고 계획을 세워주세요.
+꼭꼭 사용자 현재 위치와 가까운 곳을 최우선으로 해서 추천해주세요.
 
 [관광지 데이터]
 {context}
@@ -340,7 +278,7 @@ def get_qa_chain(_vectorstore):
 {input}
 
 다음 지침에 따라 상세한 여행 계획을 세워주세요:
-1.  **관광지 추천:** 질문에 부합하고, **사용자 위치에서 가장 가까운 1~3개의 주요 관광지를 추천**하고, 각 관광지에 대한 다음 정보를 제공하세요.
+1.  **관광지 추천:** 질문에 부합하고, 사용자 위치에서 가까운 1~3개의 주요 관광지를 추천하고, 각 관광지에 대한 다음 정보를 제공하세요.
     * 관광지 이름: [관광지명]
     * 주소: [주소]
     * 주요 시설/특징: [정보]
@@ -374,45 +312,8 @@ def get_qa_chain(_vectorstore):
 """
     )
     document_chain = create_stuff_documents_chain(llm, qa_prompt)
-
-    # ----------------------------------------------------
-    # Custom Retriever 구현: 의미론적 검색 후 거리 기반 정렬
-    # ----------------------------------------------------
-    # 먼저 충분히 많은 문서를 가져와서 그 중에서 필터링합니다.
-    base_retriever = _vectorstore.as_retriever(search_kwargs={"k": 20}) 
-
-    def custom_retriever(query_params):
-        query = query_params["input"]
-        user_lat = query_params["user_lat"]
-        user_lon = query_params["user_lon"]
-        
-        # 1단계: 기본 retriever로 의미론적 유사성 기반 문서 가져오기
-        retrieved_docs = base_retriever.invoke(query)
-        
-        # 2단계: 가져온 문서에 대해 거리 계산 및 재정렬
-        docs_with_distance = []
-        for doc in retrieved_docs:
-            doc_lat = doc.metadata.get("위도")
-            doc_lon = doc.metadata.get("경도")
-            
-            if doc_lat is not None and doc_lon is not None:
-                distance = haversine(user_lat, user_lon, doc_lat, doc_lon)
-                docs_with_distance.append((doc, distance))
-            else:
-                # 위치 정보가 없는 문서는 거리를 매우 크게 설정하여 뒤로 밀리게 함
-                docs_with_distance.append((doc, float('inf'))) 
-
-        # 거리에 따라 정렬 (가까운 순)
-        docs_with_distance.sort(key=lambda x: x[1])
-
-        # 가장 가까운 상위 N개 문서만 선택하여 LLM에 전달
-        # 너무 많은 문서를 전달하면 LLM의 토큰 제한에 걸릴 수 있으므로 적절히 조절합니다.
-        final_docs = [doc for doc, _ in docs_with_distance[:5]] # 예: 상위 5개 문서만 사용
-        
-        return final_docs
-
-    # Retrieval Chain 생성 시 custom_retriever 함수 자체를 전달
-    retrieval_chain = create_retrieval_chain(custom_retriever, document_chain)
+    retriever = _vectorstore.as_retriever(search_kwargs={"k": 10})
+    retrieval_chain = create_retrieval_chain(retriever, document_chain)
 
     return retrieval_chain
 
@@ -421,18 +322,14 @@ def get_qa_chain(_vectorstore):
 if __name__ == "__main__":
     openai_api_key = setup_environment()
     if not openai_api_key:
-        st.stop() # API 키 없으면 앱 중단
+        st.stop()
 
     initialize_streamlit_app()
 
-    # 벡터스토어 로드/생성
-    vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
-    
-    # QA Chain 생성 (API 키가 유효하게 로드된 후)
+    vectorstore = get_vectorstore_cached(TOUR_CSV_FILES) # 인자 제거
     qa_chain = get_qa_chain(vectorstore)
 
-    # 데이터프레임 로드 (거리 계산 및 정보 표시용)
-    tour_data_df = load_specific_tour_data(TOUR_CSV_FILES)
+    tour_data_df = load_specific_tour_data(TOUR_CSV_FILES) # 인자 제거
 
     age, travel_style_list, current_user_lat, current_user_lon, \
     trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
@@ -496,17 +393,15 @@ if __name__ == "__main__":
                     processed_output_lines = []
                     processed_place_names = set()
 
-                    # LLM이 추천한 관광지 이름을 파싱하여 실제 데이터프레임에서 위경도 정보를 찾고 거리 계산 후 출력
                     for line in rag_result_text.split('\n'):
                         name_match = re.search(r"관광지 이름:\s*(.+)", line)
 
                         if name_match:
                             current_place_name = name_match.group(1).strip()
-                            if current_place_name not in processed_place_names: # 중복 추천 방지
+                            if current_place_name not in processed_place_names:
                                 processed_output_lines.append(line)
                                 processed_place_names.add(current_place_name)
 
-                                # tour_data_df에서 해당 관광지명에 맞는 위도, 경도 찾기
                                 found_place_data = tour_data_df[
                                     (tour_data_df['관광지명'].str.strip() == current_place_name) &
                                     (pd.notna(tour_data_df['위도'])) &
@@ -520,9 +415,9 @@ if __name__ == "__main__":
                                     processed_output_lines.append(f"- 사용자 위치 기준 거리(km): 약 {distance:.2f} km")
                                 else:
                                     processed_output_lines.append("- 사용자 위치 기준 거리(km): 정보 없음 (데이터 불일치 또는 좌표 누락)")
-                            # else: 이미 처리된 관광지이므로 무시
+                            else:
+                                pass
                         else:
-                            # '거리(km):' 포함된 라인은 LLM이 출력했더라도 우리가 직접 추가하므로 제외
                             if not re.search(r"거리\(km\):", line):
                                 processed_output_lines.append(line)
 
