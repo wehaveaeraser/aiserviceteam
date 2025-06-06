@@ -215,7 +215,7 @@ def get_user_inputs_ui():
         if temp_lat is not None and temp_lon is not None:
             user_lat_final = temp_lat
             user_lon_final = temp_lon
-            st.success(f"📍 현재 위치: 위도 {user_lat_final:.5f}, 경도 {user_lon_final:.5f}")
+            st.success(f"📍 현재 위치: 위도 {user_lat_final:.7f}, 경도 {user_lon_final:.7f}")
         else:
             st.warning("📍 위치 정보를 불러오지 못했습니다. 수동으로 입력해 주세요.")
     else:
