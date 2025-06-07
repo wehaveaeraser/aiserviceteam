@@ -81,7 +81,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
 
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
-            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜁니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
+            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
         # 모든 파일에 CP949 인코딩 적용
@@ -138,7 +138,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list): # utf8
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
-            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
+            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
             continue
 
         # 모든 파일에 CP949 인코딩 적용
@@ -170,7 +170,6 @@ def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제�
 
     if os.path.exists(VECTOR_DB_PATH):
         try:
-            # st.info("기존 벡터 DB를 로드 중...") # Removed this line
             return FAISS.load_local(
                 VECTOR_DB_PATH,
                 OpenAIEmbeddings(),
@@ -180,7 +179,6 @@ def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제�
             st.warning(f"기존 벡터 DB 로딩 실패: {e}. 새로 생성합니다.")
             return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
     else:
-        # st.info("새로운 벡터 DB를 생성 중...") # Removed this line
         return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
 
 
@@ -331,25 +329,29 @@ if __name__ == "__main__":
 
     tour_data_df = load_specific_tour_data(TOUR_CSV_FILES) # 인자 제거
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    # 세션 상태 초기화: 각 대화는 { "user": "사용자 질문", "assistant": "챗봇 답변" } 형태로 저장됩니다.
+    if "conversations" not in st.session_state:
+        st.session_state.conversations = []
     if "current_input" not in st.session_state:
         st.session_state.current_input = ""
-    if "selected_message_index" not in st.session_state:
-        st.session_state.selected_message_index = None
+    if "selected_conversation_index" not in st.session_state:
+        st.session_state.selected_conversation_index = None
 
     # Sidebar for previous conversations
     with st.sidebar:
         st.subheader("💡 이전 대화")
-        if st.session_state.messages:
-            for i, m in enumerate(reversed(st.session_state.messages)):
-                display_index = len(st.session_state.messages) - 1 - i
-                role = "🙋‍♂️ 사용자" if m["role"] == "user" else "🤖 챗봇"
+        if st.session_state.conversations:
+            # 최신 대화가 위에 오도록 역순으로 표시
+            for i, conv in enumerate(reversed(st.session_state.conversations)):
+                # 실제 인덱스를 계산 (뒤집힌 순서에 따라)
+                original_index = len(st.session_state.conversations) - 1 - i
                 
-                # Create a clickable button for each message
-                if st.button(f"{role} (대화 {display_index + 1})", key=f"sidebar_msg_{i}"):
-                    st.session_state.selected_message_index = display_index
-                    st.rerun() # <--- 이 부분이 수정되었습니다.
+                # 사용자 질문의 첫 몇 글자를 따와서 버튼 텍스트로 사용
+                preview_text = conv['user'][:30] + ('...' if len(conv['user']) > 30 else '')
+                
+                if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
+                    st.session_state.selected_conversation_index = original_index
+                    st.rerun() # 변경된 부분
 
         else:
             st.info("이전 대화가 없습니다.")
@@ -362,7 +364,8 @@ if __name__ == "__main__":
     user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
 
     if st.button("여행 계획 추천받기"):
-        st.session_state.messages.append({"role": "user", "content": user_query})
+        # 현재 선택된 대화 초기화 (새로운 질문 시작 시)
+        st.session_state.selected_conversation_index = None 
 
         lat_to_invoke = current_user_lat
         lon_to_invoke = current_user_lon
@@ -388,10 +391,12 @@ if __name__ == "__main__":
 
         if lat_to_invoke is None or lon_to_invoke is None:
             st.warning("위치 정보가 없으므로 답변을 생성할 수 없습니다. 위치 정보를 입력하거나 가져와 주세요.")
-            st.session_state.messages.append({"role": "assistant", "content": "위치 정보가 없으므로 답변을 생성할 수 없습니다."})
+            # st.session_state.messages.append({"role": "assistant", "content": "위치 정보가 없으므로 답변을 생성할 수 없습니다."})
+            # 위 메시지는 이제 conversation에 저장되지 않음
         elif not user_query.strip():
             st.warning("질문을 입력해주세요.")
-            st.session_state.messages.append({"role": "assistant", "content": "질문을 입력해주세요."})
+            # st.session_state.messages.append({"role": "assistant", "content": "질문을 입력해주세요."})
+            # 위 메시지는 이제 conversation에 저장되지 않음
         else:
             with st.spinner("최적의 여행 계획을 수립 중입니다..."):
                 try:
@@ -412,11 +417,13 @@ if __name__ == "__main__":
                     processed_output_lines = []
                     processed_place_names = set()
 
+                    # LLM 응답에서 관광지 정보 추출 및 거리 추가
                     for line in rag_result_text.split('\n'):
                         name_match = re.search(r"관광지 이름:\s*(.+)", line)
 
                         if name_match:
                             current_place_name = name_match.group(1).strip()
+                            # 이미 처리된 관광지는 건너뛰어 중복 방지
                             if current_place_name not in processed_place_names:
                                 processed_output_lines.append(line)
                                 processed_place_names.add(current_place_name)
@@ -435,31 +442,43 @@ if __name__ == "__main__":
                                 else:
                                     processed_output_lines.append("- 사용자 위치 기준 거리(km): 정보 없음 (데이터 불일치 또는 좌표 누락)")
                             else:
-                                pass
+                                pass # 이미 처리된 관광지명은 건너뛰기
                         else:
+                            # '거리(km):' 정보가 이미 포함된 라인은 중복 추가 방지 (혹시 LLM이 넣었을 경우)
                             if not re.search(r"거리\(km\):", line):
                                 processed_output_lines.append(line)
 
                     final_display_text = "\n".join(processed_output_lines)
+                    
+                    # 새로운 대화 쌍을 저장
+                    st.session_state.conversations.append({
+                        "user_query": user_query,
+                        "chatbot_response": final_display_text
+                    })
 
-                    st.session_state.messages.append({"role": "assistant", "content": final_display_text})
                     st.subheader("✅ 추천 결과 및 상세 여행 계획")
                     st.markdown(final_display_text)
 
                 except ValueError as ve:
                     st.error(f"체인 호출 중 오류 발생: {ve}. 입력 키를 확인해주세요.")
-                    st.session_state.messages.append({"role": "assistant", "content": f"오류가 발생했습니다: {ve}"})
+                    # 오류 메시지도 대화 기록에 포함시키려면 여기에 추가 로직 필요
                 except Exception as e:
                     st.error(f"예상치 못한 오류 발생: {e}")
-                    st.session_state.messages.append({"role": "assistant", "content": f"예상치 못한 오류가 발생했습니다: {e}"})
+                    # 오류 메시지도 대화 기록에 포함시키려면 여기에 추가 로직 필요
 
-        st.session_state.current_input = ""
+        st.session_state.current_input = "" # 입력창 초기화
 
-    # Display selected previous conversation
-    if st.session_state.selected_message_index is not None:
-        st.subheader("선택된 대화 내용")
-        selected_message = st.session_state.messages[st.session_state.selected_message_index]
-        role = "🙋‍♂️ 사용자" if selected_message["role"] == "user" else "🤖 챗봇"
-        st.markdown(f"**{role}:**")
-        st.markdown(selected_message['content'])
-        st.markdown("---")
+    # --- 선택된 이전 대화 내용 표시 (새로운 섹션) ---
+    if st.session_state.selected_conversation_index is not None:
+        st.markdown("---") # 구분선 추가
+        st.header("📖 선택된 이전 대화 내용")
+        
+        selected_conv = st.session_state.conversations[st.session_state.selected_conversation_index]
+        
+        st.subheader("🙋‍♂️ 사용자 질문:")
+        st.markdown(selected_conv['user_query'])
+        
+        st.subheader("🤖 챗봇 답변:")
+        st.markdown(selected_conv['chatbot_response'])
+        
+        st.markdown("---") # 구분선 추가
