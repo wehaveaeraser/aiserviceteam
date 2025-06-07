@@ -21,44 +21,180 @@ from dotenv import load_dotenv
 # .env 파일 로드 (로컬 개발 시 사용. Streamlit Cloud에서는 Secrets 사용 권장)
 load_dotenv()
 
-st.set_page_config(page_title="🚂관광지 추천 챗봇", layout="wide")
+st.set_page_config(page_title="나만의 AI 여행 플래너", layout="centered") # layout을 centered로 변경하여 중앙 정렬 용이하게
 
 # --- 커스텀 CSS 정의 ---
-# 여기서 불필요하거나 잘못된 문자를 제거했습니다.
 st.markdown(
     """
     <style>
-    /* 전체 배경색 및 폰트 */
+    /* Google Fonts - Noto Sans KR 임포트 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+
+    body {
+        font-family: 'Noto Sans KR', sans-serif !important;
+    }
+
+    /* 전체 앱 배경색 및 폰트 기본 설정 */
     .stApp {
-        background-color: #f8f9fa; /* 밝은 회색, 거의 흰색 */
-        color: #343a40; /* 어두운 회색 텍스트 */
+        background-color: #f8f9fa; /* 밝은 회색 배경 */
+        color: #343a40; /* 기본 텍스트 색상 */
         font-family: 'Noto Sans KR', sans-serif;
     }
 
-    /* 제목 스타일 */
-    h1 {
+    /* 시작 화면 컨테이너 (st.container 또는 직접 div 사용) */
+    .welcome-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 30px;
+        background-color: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        margin-top: 50px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* 메인 타이틀 */
+    .main-logo-text {
         color: #007bff; /* 강렬한 파란색 */
+        font-size: 3.5em; /* 더 크게 */
+        font-weight: 700; /* Noto Sans KR의 Bold */
+        margin-bottom: 0.1em;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* 서브 타이틀 */
+    .sub-tagline-text {
+        color: #6c757d; /* 중간 회색 */
+        font-size: 1.2em;
+        margin-bottom: 1.5em;
+    }
+
+    /* 중앙 구분선 */
+    .center-divider {
+        width: 60%;
+        height: 2px;
+        background-color: #e9ecef; /* 밝은 회색 선 */
+        margin-bottom: 2.5em;
+        border: none; /* 기본 테두리 제거 */
+    }
+    
+    /* "여행을 위한 기본 정보를 알려주세요." 문구 */
+    .instruction-text {
+        font-size: 1.3em;
+        color: #495057;
+        font-weight: 400;
+        margin-bottom: 2em;
+    }
+
+    /* 사용자 정보 입력 섹션 컨테이너 (파란색 박스) */
+    .user-input-section {
+        background-color: #ffffff; /* 흰색 배경 유지 (컨테이너는 CSS로 못바꿈) */
+        border: 1px solid #dee2e6; /* 연한 테두리 */
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 30px;
+        width: 100%; /* 너비 100%로 설정 */
+    }
+
+    /* 사용자 정보 섹션 제목 박스 */
+    .input-section-header {
+        background-color: #007bff; /* 파란색 배경 */
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px; /* 둥근 모서리 */
+        font-size: 1.4em;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 25px; /* 아래 여백 */
+        /* 박스가 Streamlit의 컬럼 안에 들어가면 너비가 줄어들 수 있음 */
+        /* 여기서는 Streamlit 컬럼 안에 직접 st.markdown으로 넣을 수 없으니 st.columns를 사용해 배치합니다. */
+        /* 이 CSS는 st.container 또는 div에 클래스를 부여하여 사용해야 합니다. */
+    }
+
+    /* 나이대 선택, 성향 선택 필드 감싸는 컨테이너 */
+    .flex-inputs-container {
+        display: flex;
+        gap: 30px; /* 필드 사이 간격 */
+        justify-content: center; /* 가운데 정렬 */
+        margin-bottom: 20px;
+    }
+    .flex-inputs-container > div {
+        flex: 1; /* 각 필드가 동일한 너비를 가지도록 */
+        min-width: 250px; /* 최소 너비 지정 */
+    }
+
+    /* Streamlit 위젯 라벨 스타일 (모든 위젯에 적용) */
+    .stSelectbox label, 
+    .stMultiSelect label,
+    .stNumberInput label,
+    .stTextInput label,
+    .stTextArea label {
+        font-weight: 700 !important; /* 굵은 글씨 */
+        color: #495057 !important; /* 어두운 회색 */
+        font-size: 1.1em !important;
+        margin-bottom: 8px !important;
+        display: block !important;
+    }
+
+    /* Streamlit 위젯 입력 필드 스타일 */
+    .stSelectbox div[data-baseweb="select"] div,
+    .stMultiSelect div[data-baseweb="tag-input"] div,
+    .stNumberInput input,
+    .stTextInput input,
+    .stTextArea textarea {
+        border-radius: 8px !important;
+        border: 1px solid #ced4da !important;
+        padding: 10px 15px !important;
+        background-color: #ffffff !important;
+        font-size: 1em !important;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+
+    /* 버튼 스타일 */
+    .stButton>button {
+        background-color: #28a745; /* 초록색 버튼 */
+        color: white;
+        border-radius: 8px;
+        padding: 12px 30px;
+        font-size: 1.3em;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 4px 10px rgba(40,167,69,0.3);
+        transition: all 0.3s ease-in-out;
+        cursor: pointer;
+        margin-top: 30px; /* 위 여백 */
+    }
+    .stButton>button:hover {
+        background-color: #218838; /* 호버 시 더 진하게 */
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(40,167,69,0.4);
+    }
+    
+    /* 나머지 일반적인 요소들 스타일 (이전 CSS에서 유지) */
+    h1 {
+        color: #007bff;
         text-align: center;
         font-size: 3.2em;
         margin-bottom: 0.6em;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     h2 {
-        color: #28a745; /* 초록색 강조 */
+        color: #28a745;
         font-size: 2.2em;
-        border-bottom: 3px solid #e9ecef; /* 깔끔한 구분선 */
+        border-bottom: 3px solid #e9ecef;
         padding-bottom: 0.4em;
         margin-top: 2em;
         margin-bottom: 1.5em;
         display: flex;
         align-items: center;
     }
-    h2 .icon {
-        font-size: 1.2em;
-        margin-right: 10px;
-    }
     h3 {
-        color: #6c757d; /* 중간 회색 */
+        color: #6c757d;
         font-size: 1.6em;
         margin-top: 1.5em;
         margin-bottom: 1em;
@@ -69,10 +205,8 @@ st.markdown(
         margin-top: 1em;
         margin-bottom: 0.6em;
     }
-
-    /* 사이드바 스타일 */
     .stSidebar {
-        background-color: #ffffff; /* 흰색 사이드바 */
+        background-color: #ffffff;
         color: #343a40;
         border-right: 1px solid #dee2e6;
         box-shadow: 2px 0 8px rgba(0,0,0,0.05);
@@ -82,14 +216,14 @@ st.markdown(
         margin-bottom: 8px;
         border-radius: 8px;
         border: none;
-        background-color: #e9ecef; /* 버튼 배경색 */
+        background-color: #e9ecef;
         color: #343a40;
         font-size: 1em;
         padding: 10px 15px;
         transition: all 0.2s ease-in-out;
     }
     .stSidebar .stButton>button:hover {
-        background-color: #007bff; /* 호버시 색상 */
+        background-color: #007bff;
         color: #ffffff;
         transform: translateY(-2px);
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -107,69 +241,6 @@ st.markdown(
         border-radius: 8px;
         margin-top: 15px;
     }
-
-    /* 입력 위젯 스타일 */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stMultiSelect>div>div>div {
-        border-radius: 10px;
-        border: 1px solid #ced4da;
-        padding: 12px;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-        background-color: #ffffff;
-        font-size: 1.05em;
-    }
-    .stNumberInput>div>div>input {
-        border-radius: 10px;
-        border: 1px solid #ced4da;
-        padding: 12px;
-        background-color: #ffffff;
-        font-size: 1.05em;
-    }
-    .stForm {
-        padding: 30px;
-        border-radius: 15px;
-        background-color: #ffffff;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        margin-bottom: 30px;
-    }
-    .stForm button {
-        margin-top: 20px;
-    }
-
-    /* 버튼 스타일 */
-    .stButton>button {
-        background-color: #007bff; /* 주 버튼 파란색 */
-        color: white;
-        border-radius: 12px;
-        padding: 12px 25px;
-        font-size: 1.2em;
-        font-weight: bold;
-        border: none;
-        box-shadow: 0 5px 10px rgba(0,123,255,0.2);
-        transition: all 0.3s ease-in-out;
-        cursor: pointer;
-    }
-    .stButton>button:hover {
-        background-color: #0056b3; /* 호버 시 더 진하게 */
-        transform: translateY(-3px);
-        box-shadow: 0 8px 15px rgba(0,123,255,0.3);
-    }
-    /* 특정 버튼 (새로운 대화 시작하기) 스타일 */
-    /* Streamlit 1.28+에서 button key에 따라 style 주는 방법 */
-    /* 현재 코드에서는 st.button("새로운 대화 시작하기")에 kind="secondary"를 명시적으로 주지 않았으므로 이 선택자는 적용되지 않을 수 있습니다. */
-    /* 만약 특정 버튼에 스타일을 적용하고 싶다면 st.button("새로운 대화 시작하기", type="secondary")와 같이 type을 지정하거나, 
-       버튼의 key를 활용하는 다른 CSS 선택자를 고려해야 합니다. */
-    .stButton button[kind="secondary"] { 
-        background-color: #6c757d; /* 회색 버튼 */
-        box-shadow: 0 3px 6px rgba(108,117,125,0.2);
-    }
-    .stButton button[kind="secondary"]:hover {
-        background-color: #5a6268;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 10px rgba(108,117,125,0.3);
-    }
-
-
-    /* 경고/성공/정보 메시지 스타일 */
     .stAlert {
         border-radius: 10px;
         padding: 18px;
@@ -197,15 +268,9 @@ st.markdown(
         color: #0056b3;
         border-left: 5px solid #007bff;
     }
-    
-    /* 스피너 스타일 */
     .stSpinner > div > div {
-        color: #007bff; /* 스피너 색상 변경 */
+        color: #007bff;
     }
-
-    /* 마크다운 테이블 스타일 (여행 계획표) */
-    /* Streamlit의 st.dataframe은 AgGrid 기반이므로 AgGrid 관련 클래스를 사용합니다. */
-    /* 아래 CSS는 st.dataframe에만 적용될 수 있습니다. st.markdown으로 생성된 테이블에는 적용되지 않을 수 있습니다. */
     .st-ag .ag-header-cell {
         background-color: #007bff !important;
         color: #ffffff !important;
@@ -228,16 +293,6 @@ st.markdown(
         overflow: hidden;
         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
     }
-    
-    /* 입력 필드 레이블 */
-    .stTextInput label, .stTextArea label, .stSelectbox label, .stMultiSelect label, .stNumberInput label {
-        font-weight: bold;
-        color: #495057;
-        font-size: 1.1em;
-        margin-bottom: 0.5em;
-    }
-
-    /* 구분선 */
     hr {
         margin-top: 3em;
         margin-bottom: 3em;
@@ -251,12 +306,7 @@ st.markdown(
 )
 
 # --- 파일 경로 정의 (상수) ---
-# GitHub 저장소에 업로드할 때 이 경로가 올바르게 설정되어 있어야 합니다.
-# 예: 프로젝트 루트에 CSV 파일들이 있다면 "./파일명.csv"
 VECTOR_DB_PATH = "faiss_tourist_attractions"
-
-# 로드할 개별 관광지 CSV 파일 목록을 직접 지정합니다.
-# 이 파일들은 GitHub 저장소의 앱 스크립트와 동일한 위치 또는 지정된 상대 경로에 있어야 합니다.
 TOUR_CSV_FILES = [
     "./경기도역사관광지현황.csv",
     "./경기도자연관광지현황.csv",
@@ -264,29 +314,20 @@ TOUR_CSV_FILES = [
     "./경기도테마관광지현황.csv",
     "./관광지정보현황(제공표준).csv",
     "./관광지현황.csv",
-    # 필요에 따라 다른 CSV 파일들을 여기에 추가하세요.
 ]
 
 # --- 초기 파일 존재 여부 확인 ---
 required_files = TOUR_CSV_FILES
 for f_path in required_files:
-    # GitHub 배포 시, 이 os.path.exists 검사는 Git 저장소 내의 파일 존재 여부를 확인합니다.
     if not os.path.exists(f_path):
         st.error(f"필수 데이터 파일 '{f_path}'을(를) 찾을 수 없습니다. 경로를 확인해주세요. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
         st.stop()
 
-
 # --- 1. 설정 및 초기화 함수 ---
 def setup_environment():
-    """
-    환경 변수 또는 Streamlit secrets에서 OpenAI API 키를 로드합니다.
-    Streamlit Cloud 환경에서는 st.secrets를 우선적으로 사용합니다.
-    로컬 환경에서는 .env 파일을 로드하거나 시스템 환경 변수에서 가져옵니다.
-    """
     if 'OPENAI_API_KEY' in st.secrets:
         return st.secrets['OPENAI_API_KEY']
     else:
-        # load_dotenv()는 이 함수 바깥에서 한 번 호출되므로 여기서는 생략
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
             pass
@@ -297,90 +338,66 @@ def setup_environment():
 # --- 2. 데이터 로드 및 전처리 함수 ---
 @st.cache_data
 def load_specific_tour_data(file_paths_list):
-    """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
     combined_df = pd.DataFrame()
-
     if not file_paths_list:
         st.error("로드할 관광지 CSV 파일 경로가 지정되지 않았습니다. `TOUR_CSV_FILES`를 확인해주세요.")
         st.stop()
-
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
             st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
-
-        # 'cp494' 오류 수정: 'cp949'로 변경
-        current_encoding = 'cp949' 
-
+        current_encoding = 'cp949'
         try:
-            # GitHub에 파일이 있다면, Streamlit은 해당 경로에서 파일을 읽어옵니다.
             df = pd.read_csv(file_path, encoding=current_encoding)
             df.columns = df.columns.str.strip()
-
             if "위도" not in df.columns or "경도" not in df.columns:
                 st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜱니다.")
                 continue
-
             name_col = None
             for candidate in ["관광지명", "관광정보명","관광지"]:
                 if candidate in df.columns:
                     name_col = candidate
                     break
-
             if name_col is None:
                 df["관광지명"] = "이름 없음"
             else:
                 df["관광지명"] = df[name_col]
-
             address_col = None
             for candidate in ["정제도로명주소","정제지번주소","소재지도로명주소","소재지지번주소","관광지소재지지번주소","관광지소재지도로명주소"]:
                 if candidate in df.columns:
                     address_col = candidate
                     break
-
             if address_col is None:
                 df["소재지도로명주소"] = "주소 없음"
             else:
                 df["소재지도로명주소"] = df[address_col]
-
             df = df[["위도", "경도", "관광지명", "소재지도로명주소"]]
-
             combined_df = pd.concat([combined_df, df], ignore_index=True)
-
         except Exception as e:
             st.warning(f"'{os.path.basename(file_path)}' 파일 ({current_encoding} 인코딩 시도) 처리 중 오류 발생: {e}")
-
     if combined_df.empty:
         st.error("지정된 파일들에서 유효한 관광지 데이터를 불러오지 못했습니다. `TOUR_CSV_FILES`와 파일 내용을 확인해주세요.")
         st.stop()
-
     return combined_df
-
 
 # --- 벡터스토어 로딩 및 캐싱 ---
 @st.cache_resource
 def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
-    """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다."""
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
             st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
             continue
-
         current_encoding = 'cp949' 
-
         try:
             city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
             all_city_tour_docs.extend(city_tour_loader.load())
         except Exception as e:
             st.warning(f"'{os.path.basename(file_path)}' 파일 ({current_encoding} 인코딩 시도) 로드 중 오류 발생 (벡터스토어): {e}")
-
     all_documents = all_city_tour_docs
-
     if not all_documents:
         st.error("벡터스토어를 생성할 문서가 없습니다. CSV 파일 경로와 내용을 확인해주세요.")
         st.stop()
-
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=50)
     docs = text_splitter.split_documents(all_documents)
     embeddings = OpenAIEmbeddings()
@@ -390,7 +407,6 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
 
 @st.cache_resource()
 def get_vectorstore_cached(tour_csv_files_list):
-    """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
     if os.path.exists(VECTOR_DB_PATH):
         try:
             return FAISS.load_local(
@@ -403,7 +419,6 @@ def get_vectorstore_cached(tour_csv_files_list):
             return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
     else:
         return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
-
 
 # --- Haversine distance function ---
 def haversine(lat1, lon1, lat2, lon2):
@@ -418,14 +433,20 @@ def haversine(lat1, lon1, lat2, lon2):
 
 # --- 3. 사용자 입력 및 UI 로직 함수 ---
 def get_user_inputs_ui():
-    """사용자로부터 나이, 여행 스타일, 현재 위치, 그리고 추가 여행 계획 정보를 입력받는 UI를 표시합니다."""
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("#### 사용자 정보 입력")
+        st.markdown('<div class="input-section-header">1 사용자 정보 입력</div>', unsafe_allow_html=True)
+        st.markdown('<div class="flex-inputs-container">', unsafe_allow_html=True)
+        
+        # 나이대 선택
         age = st.selectbox("나이대 선택", ["10대", "20대", "30대", "40대", "50대 이상"], key='age_selectbox')
-        travel_style = st.multiselect("여행 스타일", ["자연", "역사", "체험", "휴식", "문화", "가족", "액티비티"], key='travel_style_multiselect')
+        
+        # 여행 스타일 (복수 선택 가능)
+        travel_style = st.multiselect("선호하는 여행 스타일 (복수 선택 가능)", ["자연", "역사", "체험", "휴식", "문화", "가족", "액티비티"], key='travel_style_multiselect')
+        
+        st.markdown('</div>', unsafe_allow_html=True) # flex-inputs-container 닫기
 
-    st.header("① 위치 가져오기")
+    st.header("② 위치 가져오기")
     location = streamlit_geolocation()
 
     user_lat_final, user_lon_final = None, None
@@ -558,34 +579,33 @@ if __name__ == "__main__":
 
     # 시작 화면
     if not st.session_state.app_started:
-        st.title("🚂떠나자! 맞춤형 여행 계획 챗봇")
-        st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
+        st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
+        st.markdown('<div class="main-logo-text">나만의 AI 여행 플래너</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sub-tagline-text">당신의 취향에 맞춰 최고의 여행 코스를 제안해 드립니다.</div>', unsafe_allow_html=True)
+        st.markdown('<hr class="center-divider">', unsafe_allow_html=True) # 중앙 구분선
+        st.markdown('<div class="instruction-text">여행을 위한 기본 정보를 알려주세요.</div>', unsafe_allow_html=True)
         
-        # PNG 이미지 파일 경로 (예: airplane.png)
-        local_image_path = "./train.jpg" 
+        # 사용자 정보 입력 섹션 (파란색 박스 포함)
+        st.markdown('<div class="user-input-section">', unsafe_allow_html=True)
+        st.markdown('<div class="input-section-header">1 사용자 정보 입력</div>', unsafe_allow_html=True)
         
-        # 이미지 파일 존재 여부 확인 (GitHub 배포 시 경로 확인에 유용)
-        if os.path.exists(local_image_path):
-            st.image(local_image_path, 
-                     caption="여행의 시작은 지금부터!", 
-                     use_container_width=True) 
-        else:
-            # 이미지가 없을 경우 대체 텍스트 또는 경고 메시지 표시
-            st.warning(f"시작 화면 이미지를 찾을 수 없습니다: {local_image_path}") #
-            # 또는 대체 URL 이미지를 사용할 수도 있습니다.
-            # st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 
-            #          caption="여행의 시작은 비행기에서부터!", 
-            #          use_container_width=True)
+        # 나이대 선택과 여행 스타일을 나란히 배치하기 위해 colums 사용
+        col_age, col_style = st.columns(2)
+        with col_age:
+            age = st.selectbox("나이대 선택", ["10대", "20대", "30대", "40대", "50대 이상"], key='age_selectbox_welcome')
+        with col_style:
+            travel_style = st.multiselect("선호하는 여행 스타일 (복수 선택 가능)", ["자연", "역사", "체험", "휴식", "문화", "가족", "액티비티"], key='travel_style_multiselect_welcome')
+        
+        st.markdown('</div>', unsafe_allow_html=True) # user-input-section 닫기
 
-        st.write("""
-        이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 
-        상세한 일자별 여행 계획을 세워줍니다. 
-        이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
-        """)
+        st.markdown('</div>', unsafe_allow_html=True) # welcome-container 닫기
         
-        if st.button("🚂여행 계획 시작하기"):
-            st.session_state.app_started = True
-            st.rerun() # 앱 다시 시작하여 챗봇 화면으로 전환
+        # "여행 계획 시작하기" 버튼을 중앙에 배치
+        col_start_btn1, col_start_btn2, col_start_btn3 = st.columns([1, 2, 1])
+        with col_start_btn2:
+            if st.button("🚂여행 계획 시작하기", use_container_width=True): # use_container_width로 가운데 정렬 시도
+                st.session_state.app_started = True
+                st.rerun() # 앱 다시 시작하여 챗봇 화면으로 전환
 
     else: # 앱 시작 플래그가 True인 경우 챗봇 화면 표시
         st.title("🗺️ 위치 기반 관광지 추천 및 여행 계획 챗봇")
@@ -597,13 +617,11 @@ if __name__ == "__main__":
         with st.sidebar:
             st.subheader("💡이전 대화")
             if st.session_state.conversations:
-                # 최신 대화를 먼저 보여주기 위해 역순으로 반복
                 for i, conv in enumerate(reversed(st.session_state.conversations)):
                     original_index = len(st.session_state.conversations) - 1 - i
                     
                     if 'travel_style_selected' in conv and conv['travel_style_selected'] and conv['travel_style_selected'] != '특정 없음':
                         preview_text = f"성향: {conv['travel_style_selected']}"
-                        # 미리보기 텍스트가 너무 길면 잘라냄
                         if len(preview_text) > 25:
                             preview_text = preview_text[:22] + '...'
                     else:
@@ -612,14 +630,12 @@ if __name__ == "__main__":
                     if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
                         st.session_state.selected_conversation_index = original_index
                         st.rerun()
-
             else:
                 st.info("이전 대화가 없습니다.")
 
         # --- 메인 콘텐츠 영역 ---
         if st.session_state.selected_conversation_index is not None:
             st.header("이전 대화 내용")
-            
             selected_conv = st.session_state.conversations[st.session_state.selected_conversation_index]
             
             st.subheader("질문:")
@@ -630,7 +646,7 @@ if __name__ == "__main__":
                 st.markdown(selected_conv['travel_style_selected'])
 
             st.subheader("답변:")
-            st.markdown(selected_conv['chatbot_response']) # 원본 텍스트로 보여줌
+            st.markdown(selected_conv['chatbot_response'])
             
             st.markdown("---")
             if st.button("새로운 대화 시작하기"):
@@ -639,10 +655,17 @@ if __name__ == "__main__":
                 st.rerun()
 
         else: # 이전 대화가 선택되지 않은 경우 (새로운 질문 입력 상태)
+            # 시작 화면에서 입력받은 값을 재사용 (이전 session_state에서 불러옴)
+            # 그러나 이 값들은 'welcome' 페이지에서만 사용되었으므로, 실제 챗봇 페이지의 get_user_inputs_ui()에서 다시 받습니다.
+            # 만약 welcome 페이지에서 입력받은 값을 챗봇 페이지로 넘기고 싶다면,
+            # st.session_state에 해당 값들을 저장하고 get_user_inputs_ui()에서 기본값으로 활용해야 합니다.
+            # 현재 코드 구조에서는 챗봇 페이지 진입 시 다시 입력받는 것이 명확합니다.
+
+            # 챗봇 페이지의 입력 UI는 기존 함수를 통해 별도로 표시
             age, travel_style_list, current_user_lat, current_user_lon, \
             trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
 
-            st.header("② 질문하기")
+            st.header("③ 질문하기")
             user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
 
             if st.button("여행 계획 추천받기"):
@@ -755,7 +778,6 @@ if __name__ == "__main__":
                                             else:
                                                 st.warning("여행 계획 테이블의 행과 열의 수가 일치하지 않아 표를 생성할 수 없습니다. LLM 응답 형식을 확인해주세요.")
                                         else:
-                                        #
                                             st.warning("여행 계획 테이블 내용을 파싱할 수 없습니다. LLM이 요청된 표 형식을 따르지 않았을 수 있습니다.")
                                     else:
                                         st.warning("여행 계획이 유효한 표 형식으로 제공되지 않았습니다.")
