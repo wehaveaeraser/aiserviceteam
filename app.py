@@ -138,7 +138,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
-            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
+            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
             continue
 
         # 모든 파일에 CP949 인코딩 적용
