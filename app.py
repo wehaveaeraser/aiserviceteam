@@ -325,7 +325,7 @@ if __name__ == "__main__":
         """
         <style>
         .stApp {
-            background-color: #8DB600; /* 연색 계열 */
+            background-color: #32CD32; /* 연두색 계열 */
         }
         </style>
         """,
