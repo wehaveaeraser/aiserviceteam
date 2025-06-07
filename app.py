@@ -61,7 +61,7 @@ def setup_environment():
         if api_key:
             pass # 성공 메시지를 출력하지 않도록 변경
         else:
-            st.error("❌ OpenAI API 키를 찾을 수 없습니다. Streamlit Cloud에서는 secrets.toml에 키를 설정하거나, 로컬에서는 .env 파일을 확인해주세요.")
+            st.error("❌OpenAI API 키를 찾을 수 없습니다. Streamlit Cloud에서는 secrets.toml에 키를 설정하거나, 로컬에서는 .env 파일을 확인해주세요.")
         return api_key
 
 
@@ -337,7 +337,7 @@ if __name__ == "__main__":
 
     # Sidebar for previous conversations
     with st.sidebar:
-        st.subheader("💡 이전 대화")
+        st.subheader("💡이전 대화")
         if st.session_state.conversations:
             for i, conv in enumerate(reversed(st.session_state.conversations)):
                 original_index = len(st.session_state.conversations) - 1 - i
@@ -358,18 +358,18 @@ if __name__ == "__main__":
 
     # --- 메인 콘텐츠 영역 ---
     if st.session_state.selected_conversation_index is not None:
-        st.header("📖 선택된 이전 대화 내용")
+        st.header("이전 대화 내용")
         
         selected_conv = st.session_state.conversations[st.session_state.selected_conversation_index]
         
-        st.subheader("🙋‍♂️ 사용자 질문:")
+        st.subheader("질문:")
         st.markdown(selected_conv['user_query'])
         
         if 'travel_style_selected' in selected_conv and selected_conv['travel_style_selected'] and selected_conv['travel_style_selected'] != '특정 없음':
-            st.subheader("✨ 선택된 여행 성향:")
+            st.subheader("성향:")
             st.markdown(selected_conv['travel_style_selected'])
 
-        st.subheader("🤖 챗봇 답변:")
+        st.subheader("답변:")
         # 이전 대화는 원본 텍스트로 보여줍니다. (표로 파싱하지 않음)
         st.markdown(selected_conv['chatbot_response'])
         
@@ -460,7 +460,7 @@ if __name__ == "__main__":
                                 table_plan_text += line + "\n"
 
                         # 추천 관광지 및 일반적인 정보 먼저 표시
-                        st.subheader("✅ 추천 결과 및 상세 여행 계획")
+                        st.subheader("추천 결과 및 상세 여행 계획")
                         st.markdown("\n".join(processed_output_lines))
 
                         # 여행 계획 테이블 파싱 및 표시
@@ -500,11 +500,11 @@ if __name__ == "__main__":
                                                 # (주의: set_index는 복사본을 반환하므로 다시 할당해야 함)
                                                 plan_df_styled = temp_plan_df.set_index('일차')
                                                 
-                                                st.subheader("🗓️ 상세 여행 계획 (표)")
+                                                st.subheader("🗓️추천여행계획표")
                                                 # st.dataframe에 DataFrame Styler 사용
                                                 st.dataframe(plan_df_styled, use_container_width=True)
                                             else:
-                                                st.subheader("🗓️ 상세 여행 계획 (표)")
+                                                st.subheader("🗓️추천여행계획표표")
                                                 st.dataframe(temp_plan_df, use_container_width=True)
                                                 st.warning("여행 계획에 '일차' 컬럼이 없어 그룹화하여 표시할 수 없습니다.")
                                             # --- 핵심 변경 끝 ---
