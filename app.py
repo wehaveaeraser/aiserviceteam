@@ -53,13 +53,14 @@ def setup_environment():
     로컬 환경에서는 .env 파일을 로드하거나 시스템 환경 변수에서 가져옵니다.
     """
     if 'OPENAI_API_KEY' in st.secrets:
-        st.success("✅ OpenAI API 키를 Streamlit Secrets에서 성공적으로 로드했습니다.")
+        # st.success("✅ OpenAI API 키를 Streamlit Secrets에서 성공적으로 로드했습니다.") # 이 줄을 제거하거나 주석 처리
         return st.secrets['OPENAI_API_KEY']
     else:
         load_dotenv() # 로컬 개발 시 .env 파일에서 로드 시도
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
-            st.success("✅ OpenAI API 키를 환경 변수(.env 파일 또는 시스템 환경 변수)에서 성공적으로 로드했습니다.")
+            # st.success("✅ OpenAI API 키를 환경 변수(.env 파일 또는 시스템 환경 변수)에서 성공적으로 로드했습니다.") # 이 줄을 제거하거나 주석 처리
+            pass # 성공 메시지를 출력하지 않도록 변경
         else:
             st.error("❌ OpenAI API 키를 찾을 수 없습니다. Streamlit Cloud에서는 secrets.toml에 키를 설정하거나, 로컬에서는 .env 파일을 확인해주세요.")
         return api_key
@@ -71,7 +72,7 @@ def initialize_streamlit_app():
 
 # --- 2. 데이터 로드 및 전처리 함수 ---
 @st.cache_data
-def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
+def load_specific_tour_data(file_paths_list):
     """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
     combined_df = pd.DataFrame()
 
@@ -85,7 +86,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
             continue
 
         # 모든 파일에 CP949 인코딩 적용
-        current_encoding = 'cp949' # 올바른 인코딩으로 다시 확인
+        current_encoding = 'cp949'
 
         try:
             df = pd.read_csv(file_path, encoding=current_encoding)
@@ -133,7 +134,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
 
 # --- 벡터스토어 로딩 및 캐싱 ---
 @st.cache_resource
-def load_and_create_vectorstore_from_specific_files(tour_csv_files_list): # utf8_files 파라미터 제거
+def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다."""
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
@@ -164,9 +165,11 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list): # utf8
     return vectorstore
 
 @st.cache_resource()
-def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제거
+def get_vectorstore_cached(tour_csv_files_list):
     """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
-    cache_key = tuple(sorted(tour_csv_files_list)) # 캐시 키에서 utf8_files 제거
+    # cache_key는 이 함수가 다른 인자로 호출될 때를 대비하여 유용하지만,
+    # 여기서는 고정된 파일 목록이므로 큰 의미는 없습니다.
+    # cache_key = tuple(sorted(tour_csv_files_list))
 
     if os.path.exists(VECTOR_DB_PATH):
         try:
@@ -177,9 +180,9 @@ def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제�
             )
         except Exception as e:
             st.warning(f"기존 벡터 DB 로딩 실패: {e}. 새로 생성합니다.")
-            return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
+            return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
     else:
-        return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
+        return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
 
 
 # --- Haversine distance function ---
@@ -324,7 +327,7 @@ if __name__ == "__main__":
 
     initialize_streamlit_app()
 
-    vectorstore = get_vectorstore_cached(TOUR_CSV_FILES) # 인자 제거
+    vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
 
     # --- 세션 상태 초기화 및 이전 대화 기록 관리 ---
     # `conversations`가 정의되지 않았거나, 기존에 `messages`가 남아있다면 모두 초기화
@@ -354,7 +357,7 @@ if __name__ == "__main__":
                 
                 if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
                     st.session_state.selected_conversation_index = original_index
-                    st.rerun() # <--- st.rerun()으로 수정되었습니다.
+                    st.rerun()
 
         else:
             st.info("이전 대화가 없습니다.")
