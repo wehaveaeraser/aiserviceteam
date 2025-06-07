@@ -350,7 +350,7 @@ if __name__ == "__main__":
         st.title("🚂떠나자! 맞춤형 여행 계획 챗봇")
         st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
         
-        st.image("./trainj.pg", 
+        st.image("./train.jpg", 
                  caption="여행의 시작은 지금부터!", 
                  use_container_width=True) # 수정된 부분: use_column_width -> use_container_width
         
@@ -365,7 +365,7 @@ if __name__ == "__main__":
             st.rerun() # 앱 다시 시작하여 챗봇 화면으로 전환
 
     else: # 앱 시작 플래그가 True인 경우 챗봇 화면 표시
-        st.title("🗺️ 위치 기반 관광지 추천 및 여행 계획 챗봇")
+        st.title("🗺️위치 기반 관광지 추천 및 여행 계획 챗봇")
         vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
         tour_data_df = load_specific_tour_data(TOUR_CSV_FILES)
         qa_chain = get_qa_chain(vectorstore) # DataFrame 로드 후 qa_chain 초기화
