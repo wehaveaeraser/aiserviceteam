@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 # .env 파일 로드 (로컬 개발 시 사용. Streamlit Cloud에서는 Secrets 사용 권장)
 load_dotenv()
 
-st.set_page_config(page_title="✈️ 관광지 추천 챗봇", layout="wide")
+st.set_page_config(page_title="🚂관광지 추천 챗봇", layout="wide")
 
 # --- 커스텀 CSS 정의 ---
 # 여기서 불필요하거나 잘못된 문자를 제거했습니다.
@@ -558,16 +558,16 @@ if __name__ == "__main__":
 
     # 시작 화면
     if not st.session_state.app_started:
-        st.title("✈️ 떠나자! 맞춤형 여행 계획 챗봇")
+        st.title("🚂떠나자! 맞춤형 여행 계획 챗봇")
         st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
         
         # PNG 이미지 파일 경로 (예: airplane.png)
-        local_image_path = "./airplane.png" 
+        local_image_path = "./train.jpg" 
         
         # 이미지 파일 존재 여부 확인 (GitHub 배포 시 경로 확인에 유용)
         if os.path.exists(local_image_path):
             st.image(local_image_path, 
-                     caption="여행의 시작은 비행기에서부터!", 
+                     caption="여행의 시작은 지금부터!", 
                      use_container_width=True) 
         else:
             # 이미지가 없을 경우 대체 텍스트 또는 경고 메시지 표시
@@ -583,7 +583,7 @@ if __name__ == "__main__":
         이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
         """)
         
-        if st.button("✈️ 여행 계획 시작하기"):
+        if st.button("🚂여행 계획 시작하기"):
             st.session_state.app_started = True
             st.rerun() # 앱 다시 시작하여 챗봇 화면으로 전환
 
