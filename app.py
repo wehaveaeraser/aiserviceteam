@@ -167,10 +167,6 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
 @st.cache_resource()
 def get_vectorstore_cached(tour_csv_files_list):
     """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
-    # cache_key는 이 함수가 다른 인자로 호출될 때를 대비하여 유용하지만,
-    # 여기서는 고정된 파일 목록이므로 큰 의미는 없습니다.
-    # cache_key = tuple(sorted(tour_csv_files_list))
-
     if os.path.exists(VECTOR_DB_PATH):
         try:
             return FAISS.load_local(
@@ -351,9 +347,15 @@ if __name__ == "__main__":
                 # 실제 인덱스를 계산 (뒤집힌 순서에 따라)
                 original_index = len(st.session_state.conversations) - 1 - i
                 
-                # 사용자 질문의 첫 몇 글자를 따와서 버튼 텍스트로 사용
-                # 'user_query' 키를 사용 (새로운 대화 형식)
-                preview_text = conv['user_query'][:30] + ('...' if len(conv['user_query']) > 30 else '')
+                # 'travel_style_selected' 키를 사용하여 버튼 텍스트 구성
+                # 만약 travel_style_selected가 없는 경우를 대비하여 처리
+                if 'travel_style_selected' in conv and conv['travel_style_selected']:
+                    preview_text = conv['travel_style_selected']
+                    # 너무 길 경우 잘라내기 (선택 사항)
+                    if len(preview_text) > 25: 
+                        preview_text = preview_text[:22] + '...'
+                else:
+                    preview_text = "여행 성향 없음" # 또는 conv['user_query'][:25] + '...'
                 
                 if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
                     st.session_state.selected_conversation_index = original_index
@@ -383,17 +385,18 @@ if __name__ == "__main__":
         num_travelers_to_invoke = num_travelers
         special_requests_to_invoke = special_requests
 
-        st.write(f"**DEBUG: Invoke Parameters**")
-        st.write(f"input (query): {user_query}")
-        st.write(f"age: {age_to_invoke}")
-        st.write(f"travel_style: {travel_style_to_invoke}")
-        st.write(f"user_lat: {lat_to_invoke}")
-        st.write(f"user_lon: {lon_to_invoke}")
-        st.write(f"trip_duration_days: {trip_duration_days_to_invoke}")
-        st.write(f"estimated_budget: {estimated_budget_to_invoke}")
-        st.write(f"num_travelers: {num_travelers_to_invoke}")
-        st.write(f"special_requests: {special_requests_to_invoke}")
-
+        # --- DEBUG: Invoke Parameters (이 부분도 원하시면 제거 가능) ---
+        # st.write(f"**DEBUG: Invoke Parameters**")
+        # st.write(f"input (query): {user_query}")
+        # st.write(f"age: {age_to_invoke}")
+        # st.write(f"travel_style: {travel_style_to_invoke}")
+        # st.write(f"user_lat: {lat_to_invoke}")
+        # st.write(f"user_lon: {lon_to_invoke}")
+        # st.write(f"trip_duration_days: {trip_duration_days_to_invoke}")
+        # st.write(f"estimated_budget: {estimated_budget_to_invoke}")
+        # st.write(f"num_travelers: {num_travelers_to_invoke}")
+        # st.write(f"special_requests: {special_requests_to_invoke}")
+        # --- DEBUG 끝 ---
 
         if lat_to_invoke is None or lon_to_invoke is None:
             st.warning("위치 정보가 없으므로 답변을 생성할 수 없습니다. 위치 정보를 입력하거나 가져와 주세요.")
@@ -455,7 +458,8 @@ if __name__ == "__main__":
                     # 새로운 대화 쌍을 저장
                     st.session_state.conversations.append({
                         "user_query": user_query,
-                        "chatbot_response": final_display_text
+                        "chatbot_response": final_display_text,
+                        "travel_style_selected": travel_style_to_invoke # 선택된 여행 성향 저장
                     })
 
                     st.subheader("✅ 추천 결과 및 상세 여행 계획")
