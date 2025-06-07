@@ -81,7 +81,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
 
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
-            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
+            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜁니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
         # 모든 파일에 CP949 인코딩 적용
@@ -92,7 +92,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
             df.columns = df.columns.str.strip()
 
             if "위도" not in df.columns or "경도" not in df.columns:
-                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜁니다.")
+                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜱니다.")
                 continue
 
             name_col = None
@@ -349,7 +349,7 @@ if __name__ == "__main__":
                 # Create a clickable button for each message
                 if st.button(f"{role} (대화 {display_index + 1})", key=f"sidebar_msg_{i}"):
                     st.session_state.selected_message_index = display_index
-                    st.experimental_rerun() # Rerun to display the selected message
+                    st.rerun() # <--- 이 부분이 수정되었습니다.
 
         else:
             st.info("이전 대화가 없습니다.")
