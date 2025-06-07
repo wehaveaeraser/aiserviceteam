@@ -157,7 +157,7 @@ st.markdown(
     /* Streamlit 1.28+에서 button key에 따라 style 주는 방법 */
     /* 현재 코드에서는 st.button("새로운 대화 시작하기")에 kind="secondary"를 명시적으로 주지 않았으므로 이 선택자는 적용되지 않을 수 있습니다. */
     /* 만약 특정 버튼에 스타일을 적용하고 싶다면 st.button("새로운 대화 시작하기", type="secondary")와 같이 type을 지정하거나, 
-       버튼의 key를 활용하는 다른 CSS 선택자를 고려해야 합니다. */
+        버튼의 key를 활용하는 다른 CSS 선택자를 고려해야 합니다. */
     .stButton button[kind="secondary"] { 
         background-color: #6c757d; /* 회색 버튼 */
         box-shadow: 0 3px 6px rgba(108,117,125,0.2);
@@ -245,6 +245,13 @@ st.markdown(
         height: 1px;
         background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 123, 255, 0.75), rgba(0, 0, 0, 0));
     }
+
+    /* selectbox 텍스트 잘림 해결 */
+    .stSelectbox>div>div>div>div {
+        width: 100% !important; /* 부모 너비에 맞춤 */
+        white-space: normal !important; /* 텍스트 줄바꿈 허용 */
+        overflow-wrap: break-word !important; /* 긴 단어 강제 줄바꿈 */
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -310,7 +317,7 @@ def load_specific_tour_data(file_paths_list):
             continue
 
         # 'cp494' 오류 수정: 'cp949'로 변경
-        current_encoding = 'cp949' 
+        current_encoding = 'cp949'  
 
         try:
             # GitHub에 파일이 있다면, Streamlit은 해당 경로에서 파일을 읽어옵니다.
@@ -367,7 +374,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
             st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
             continue
 
-        current_encoding = 'cp949' 
+        current_encoding = 'cp949'  
 
         try:
             city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
@@ -422,7 +429,8 @@ def get_user_inputs_ui():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("#### 사용자 정보 입력")
-        age = st.selectbox("나이대 선택", ["10대", "20대", "30대", "40대", "50대 이상"], key='age_selectbox')
+        # '나이대 선택' selectbox의 너비를 CSS로 조절하기 위해 key를 부여
+        age = st.selectbox("나이대 선택", ["10대", "20대", "30대", "40대", "50대 이상"], key='age_selectbox_new')
         travel_style = st.multiselect("여행 스타일", ["자연", "역사", "체험", "휴식", "문화", "가족", "액티비티"], key='travel_style_multiselect')
 
     st.header("① 위치 가져오기")
@@ -562,24 +570,24 @@ if __name__ == "__main__":
         st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
         
         # PNG 이미지 파일 경로 (예: airplane.png)
-        local_image_path = "./train.jpg" 
+        local_image_path = "./train.jpg"  
         
         # 이미지 파일 존재 여부 확인 (GitHub 배포 시 경로 확인에 유용)
         if os.path.exists(local_image_path):
-            st.image(local_image_path, 
-                     caption="여행의 시작은 지금부터!", 
-                     use_container_width=True) 
+            st.image(local_image_path,  
+                     caption="여행의 시작은 지금부터!",  
+                     use_container_width=True)  
         else:
             # 이미지가 없을 경우 대체 텍스트 또는 경고 메시지 표시
             st.warning(f"시작 화면 이미지를 찾을 수 없습니다: {local_image_path}") #
             # 또는 대체 URL 이미지를 사용할 수도 있습니다.
-            # st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 
-            #          caption="여행의 시작은 비행기에서부터!", 
+            # st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",  
+            #          caption="여행의 시작은 비행기에서부터!",  
             #          use_container_width=True)
 
         st.write("""
-        이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 
-        상세한 일자별 여행 계획을 세워줍니다. 
+        이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고,  
+        상세한 일자별 여행 계획을 세워줍니다.  
         이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
         """)
         
@@ -743,7 +751,7 @@ if __name__ == "__main__":
                                                     for i in range(1, len(temp_plan_df)):
                                                         if temp_plan_df.loc[i, '일차'] == temp_plan_df.loc[i-1, '일차']:
                                                             temp_plan_df.loc[i, '일차'] = ''
-                                                    
+                                                
                                                     plan_df_styled = temp_plan_df.set_index('일차')
                                                     
                                                     st.subheader("🗓️추천여행계획표")
