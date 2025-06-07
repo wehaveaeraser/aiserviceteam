@@ -299,11 +299,12 @@ def get_qa_chain(_vectorstore):
 다음 표 형식으로 일자별 상세 계획을 작성해 주세요. 컬럼명은 '일차', '시간', '활동', '예상 장소', '이동 방법'으로 해주세요.
 | 일차 | 시간 | 활동 | 예상 장소 | 이동 방법 |
 |---|---|---|---|---|
-| 1일차 | 오전 (9:00 - 12:00) | [활동 내용] | [장소명] | [이동 방법] |
+|       | 오전 (9:00 - 12:00) | [활동 내용] | [장소명] | [이동 방법] |
 | 1일차 | 점심 (12:00 - 13:00) | [식사] | [식당명] | - |
-| 1일차 | 오후 (13:00 - 17:00) | [활동 내용] | [장소명] | [이동 방법] |
-| 1일차 | 저녁 (17:00 이후) | [활동 내용] | [장소명 또는 자유 시간] | - |
+|       | 오후 (13:00 - 17:00) | [활동 내용] | [장소명] | [이동 방법] |
+| ㅡㅡㅡ| 저녁 (17:00 이후) | [활동 내용] | [장소명 또는 자유 시간] | - |
 | 2일차 | ... | ... | ... | ... |
+**중요: '일차' 컬럼의 경우, 같은 일차의 여러 활동이 있을 경우 첫 번째 활동에만 해당 '일차'를 명시하고, 나머지 활동 행의 '일차' 셀은 비워두세요 (예: "| | 시간 | 활동 | 예상 장소 | 이동 방법 |"). 이렇게 해야 표에서 '일차'가 자동으로 병합되어 보입니다.**
 """
     )
     document_chain = create_stuff_documents_chain(llm, qa_prompt)
@@ -370,8 +371,6 @@ if __name__ == "__main__":
 
         st.subheader("🤖 챗봇 답변:")
         # 이전 대화는 원본 텍스트로 보여줍니다. (표로 파싱하지 않음)
-        # 이전 대화는 파싱하지 않고 원본 LLM 응답을 그대로 마크다운으로 보여줍니다.
-        # 이 부분이 변경되면, 이전 대화를 다시 불러올 때도 표가 아닌 일반 마크다운 텍스트로 보입니다.
         st.markdown(selected_conv['chatbot_response'])
         
         st.markdown("---")
@@ -429,10 +428,9 @@ if __name__ == "__main__":
                         # LLM 응답에서 관광지 정보 추출 및 거리 추가 (기존 로직 유지)
                         for line in rag_result_text.split('\n'):
                             if "상세 여행 계획" in line and "일차 | 시간 | 활동" not in line:
-                                # '상세 여행 계획' 헤더만 먼저 추가하고, 이후 테이블 데이터를 파싱
                                 processed_output_lines.append(line)
                                 in_plan_section = True
-                                continue # 다음 라인부터 테이블 파싱 시작
+                                continue 
 
                             if not in_plan_section:
                                 name_match = re.search(r"관광지 이름:\s*(.+)", line)
@@ -472,24 +470,39 @@ if __name__ == "__main__":
                                 
                                 # Markdown 테이블의 헤더와 구분자 라인 검사
                                 if len(plan_lines) >= 2 and plan_lines[0].count('|') >= 2 and plan_lines[1].count('|') >= 2 and all(re.match(r'^-+$', s.strip()) for s in plan_lines[1].split('|') if s.strip()):
-                                    # 헤더 파싱
                                     header = [h.strip() for h in plan_lines[0].split('|') if h.strip()]
                                     data_rows = []
-                                    # 데이터 로우 파싱 (세 번째 라인부터 시작)
                                     for row_str in plan_lines[2:]:
                                         if row_str.strip() and row_str.startswith('|'):
-                                            data_rows.append([d.strip() for d in row_str.split('|') if d.strip()])
+                                            # 각 셀에서 불필요한 공백 제거
+                                            # 단, 빈 셀은 그대로 빈 문자열로 유지
+                                            parsed_row = [d.strip() for d in row_str.split('|')]
+                                            # 첫 번째와 마지막 빈 문자열 제거 (split 결과)
+                                            if parsed_row and parsed_row[0] == '':
+                                                parsed_row = parsed_row[1:]
+                                            if parsed_row and parsed_row[-1] == '':
+                                                parsed_row = parsed_row[:-1]
+                                            data_rows.append(parsed_row)
 
                                     if data_rows:
                                         # 헤더와 데이터 컬럼 수가 다를 경우 에러 방지
                                         if all(len(row) == len(header) for row in data_rows):
                                             temp_plan_df = pd.DataFrame(data_rows, columns=header)
                                             
-                                            # --- 핵심 변경: '일차' 컬럼을 인덱스로 설정하여 그룹화 ---
+                                            # --- 핵심 변경: '일차' 컬럼을 인덱스로 설정하고, 중복 인덱스 숨기기 ---
                                             if '일차' in temp_plan_df.columns:
-                                                plan_df = temp_plan_df.set_index('일차')
+                                                # ` 일차 ` 컬럼의 연속적인 중복 값을 NaN으로 변경하여 시각적으로 숨김
+                                                for i in range(1, len(temp_plan_df)):
+                                                    if temp_plan_df.loc[i, '일차'] == temp_plan_df.loc[i-1, '일차']:
+                                                        temp_plan_df.loc[i, '일차'] = '' # 빈 문자열로 설정하여 숨김
+                                                
+                                                # '일차' 컬럼을 인덱스로 설정
+                                                # (주의: set_index는 복사본을 반환하므로 다시 할당해야 함)
+                                                plan_df_styled = temp_plan_df.set_index('일차')
+                                                
                                                 st.subheader("🗓️ 상세 여행 계획 (표)")
-                                                st.dataframe(plan_df, use_container_width=True)
+                                                # st.dataframe에 DataFrame Styler 사용
+                                                st.dataframe(plan_df_styled, use_container_width=True)
                                             else:
                                                 st.subheader("🗓️ 상세 여행 계획 (표)")
                                                 st.dataframe(temp_plan_df, use_container_width=True)
@@ -507,7 +520,6 @@ if __name__ == "__main__":
                             st.info("상세 여행 계획이 제공되지 않았습니다.")
                         
                         # 새로운 대화 쌍을 저장합니다.
-                        # 이전 대화를 다시 불러올 때는 원본 LLM 응답 전체를 보여주기 위해 rag_result_text를 저장합니다.
                         st.session_state.conversations.append({
                             "user_query": user_query,
                             "chatbot_response": rag_result_text, # 원본 LLM 응답을 저장
