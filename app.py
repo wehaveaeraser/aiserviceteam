@@ -370,6 +370,8 @@ if __name__ == "__main__":
 
         st.subheader("🤖 챗봇 답변:")
         # 이전 대화는 원본 텍스트로 보여줍니다. (표로 파싱하지 않음)
+        # 이전 대화는 파싱하지 않고 원본 LLM 응답을 그대로 마크다운으로 보여줍니다.
+        # 이 부분이 변경되면, 이전 대화를 다시 불러올 때도 표가 아닌 일반 마크다운 텍스트로 보입니다.
         st.markdown(selected_conv['chatbot_response'])
         
         st.markdown("---")
@@ -476,15 +478,23 @@ if __name__ == "__main__":
                                     # 데이터 로우 파싱 (세 번째 라인부터 시작)
                                     for row_str in plan_lines[2:]:
                                         if row_str.strip() and row_str.startswith('|'):
-                                            # 각 셀에서 불필요한 공백 제거
                                             data_rows.append([d.strip() for d in row_str.split('|') if d.strip()])
 
                                     if data_rows:
                                         # 헤더와 데이터 컬럼 수가 다를 경우 에러 방지
                                         if all(len(row) == len(header) for row in data_rows):
-                                            plan_df = pd.DataFrame(data_rows, columns=header)
-                                            st.subheader("🗓️ 상세 여행 계획 (표)")
-                                            st.dataframe(plan_df, use_container_width=True)
+                                            temp_plan_df = pd.DataFrame(data_rows, columns=header)
+                                            
+                                            # --- 핵심 변경: '일차' 컬럼을 인덱스로 설정하여 그룹화 ---
+                                            if '일차' in temp_plan_df.columns:
+                                                plan_df = temp_plan_df.set_index('일차')
+                                                st.subheader("🗓️ 상세 여행 계획 (표)")
+                                                st.dataframe(plan_df, use_container_width=True)
+                                            else:
+                                                st.subheader("🗓️ 상세 여행 계획 (표)")
+                                                st.dataframe(temp_plan_df, use_container_width=True)
+                                                st.warning("여행 계획에 '일차' 컬럼이 없어 그룹화하여 표시할 수 없습니다.")
+                                            # --- 핵심 변경 끝 ---
                                         else:
                                             st.warning("여행 계획 테이블의 행과 열의 수가 일치하지 않아 표를 생성할 수 없습니다. LLM 응답 형식을 확인해주세요.")
                                     else:
