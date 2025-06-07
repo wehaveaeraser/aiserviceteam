@@ -348,15 +348,15 @@ if __name__ == "__main__":
                 original_index = len(st.session_state.conversations) - 1 - i
                 
                 # 'travel_style_selected' 키를 사용하여 버튼 텍스트 구성
-                # 만약 travel_style_selected가 없는 경우를 대비하여 처리
-                if 'travel_style_selected' in conv and conv['travel_style_selected']:
-                    preview_text = conv['travel_style_selected']
+                if 'travel_style_selected' in conv and conv['travel_style_selected'] and conv['travel_style_selected'] != '특정 없음':
+                    preview_text = f"성향: {conv['travel_style_selected']}"
                     # 너무 길 경우 잘라내기 (선택 사항)
                     if len(preview_text) > 25: 
                         preview_text = preview_text[:22] + '...'
                 else:
-                    preview_text = "여행 성향 없음" # 또는 conv['user_query'][:25] + '...'
-                
+                    # 여행 성향이 없거나 '특정 없음'인 경우 사용자 질문을 표시
+                    preview_text = conv['user_query'][:25] + ('...' if len(conv['user_query']) > 25 else '')
+                    
                 if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
                     st.session_state.selected_conversation_index = original_index
                     st.rerun()
@@ -364,117 +364,9 @@ if __name__ == "__main__":
         else:
             st.info("이전 대화가 없습니다.")
 
-    # Main content area
-    age, travel_style_list, current_user_lat, current_user_lon, \
-    trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
-
-    st.header("② 질문하기")
-    user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
-
-    if st.button("여행 계획 추천받기"):
-        # 새로운 질문 시작 시, 현재 선택된 대화 초기화
-        st.session_state.selected_conversation_index = None 
-
-        lat_to_invoke = current_user_lat
-        lon_to_invoke = current_user_lon
-
-        age_to_invoke = age
-        travel_style_to_invoke = ', '.join(travel_style_list) if travel_style_list else '특정 없음'
-        trip_duration_days_to_invoke = trip_duration_days
-        estimated_budget_to_invoke = estimated_budget
-        num_travelers_to_invoke = num_travelers
-        special_requests_to_invoke = special_requests
-
-        # --- DEBUG: Invoke Parameters (이 부분도 원하시면 제거 가능) ---
-        # st.write(f"**DEBUG: Invoke Parameters**")
-        # st.write(f"input (query): {user_query}")
-        # st.write(f"age: {age_to_invoke}")
-        # st.write(f"travel_style: {travel_style_to_invoke}")
-        # st.write(f"user_lat: {lat_to_invoke}")
-        # st.write(f"user_lon: {lon_to_invoke}")
-        # st.write(f"trip_duration_days: {trip_duration_days_to_invoke}")
-        # st.write(f"estimated_budget: {estimated_budget_to_invoke}")
-        # st.write(f"num_travelers: {num_travelers_to_invoke}")
-        # st.write(f"special_requests: {special_requests_to_invoke}")
-        # --- DEBUG 끝 ---
-
-        if lat_to_invoke is None or lon_to_invoke is None:
-            st.warning("위치 정보가 없으므로 답변을 생성할 수 없습니다. 위치 정보를 입력하거나 가져와 주세요.")
-        elif not user_query.strip():
-            st.warning("질문을 입력해주세요.")
-        else:
-            with st.spinner("최적의 여행 계획을 수립 중입니다..."):
-                try:
-                    response = qa_chain.invoke({
-                        "input": user_query,
-                        "age": age_to_invoke,
-                        "travel_style": travel_style_to_invoke,
-                        "user_lat": lat_to_invoke,
-                        "user_lon": lon_to_invoke,
-                        "trip_duration_days": trip_duration_days_to_invoke,
-                        "estimated_budget": estimated_budget_to_invoke,
-                        "num_travelers": num_travelers_to_invoke,
-                        "special_requests": special_requests_to_invoke
-                    })
-
-                    rag_result_text = response["answer"]
-
-                    processed_output_lines = []
-                    processed_place_names = set()
-
-                    # LLM 응답에서 관광지 정보 추출 및 거리 추가
-                    for line in rag_result_text.split('\n'):
-                        name_match = re.search(r"관광지 이름:\s*(.+)", line)
-
-                        if name_match:
-                            current_place_name = name_match.group(1).strip()
-                            # 이미 처리된 관광지는 건너뛰어 중복 방지
-                            if current_place_name not in processed_place_names:
-                                processed_output_lines.append(line)
-                                processed_place_names.add(current_place_name)
-
-                                found_place_data = tour_data_df[
-                                    (tour_data_df['관광지명'].str.strip() == current_place_name) &
-                                    (pd.notna(tour_data_df['위도'])) &
-                                    (pd.notna(tour_data_df['경도']))
-                                ]
-
-                                if not found_place_data.empty:
-                                    place_lat = found_place_data['위도'].iloc[0]
-                                    place_lon = found_place_data['경도'].iloc[0]
-                                    distance = haversine(lat_to_invoke, lon_to_invoke, place_lat, place_lon)
-                                    processed_output_lines.append(f"- 사용자 위치 기준 거리(km): 약 {distance:.2f} km")
-                                else:
-                                    processed_output_lines.append("- 사용자 위치 기준 거리(km): 정보 없음 (데이터 불일치 또는 좌표 누락)")
-                            else:
-                                pass # 이미 처리된 관광지명은 건너뛰기
-                        else:
-                            # '거리(km):' 정보가 이미 포함된 라인은 중복 추가 방지 (혹시 LLM이 넣었을 경우)
-                            if not re.search(r"거리\(km\):", line):
-                                processed_output_lines.append(line)
-
-                    final_display_text = "\n".join(processed_output_lines)
-                    
-                    # 새로운 대화 쌍을 저장
-                    st.session_state.conversations.append({
-                        "user_query": user_query,
-                        "chatbot_response": final_display_text,
-                        "travel_style_selected": travel_style_to_invoke # 선택된 여행 성향 저장
-                    })
-
-                    st.subheader("✅ 추천 결과 및 상세 여행 계획")
-                    st.markdown(final_display_text)
-
-                except ValueError as ve:
-                    st.error(f"체인 호출 중 오류 발생: {ve}. 입력 키를 확인해주세요.")
-                except Exception as e:
-                    st.error(f"예상치 못한 오류 발생: {e}")
-
-        st.session_state.current_input = "" # 입력창 초기화
-
-    # --- 선택된 이전 대화 내용 표시 (새로운 섹션) ---
+    # --- 메인 콘텐츠 영역 ---
+    # 선택된 이전 대화가 있다면 해당 대화 내용을 표시하고, 아니라면 새로운 질문 입력 UI를 표시
     if st.session_state.selected_conversation_index is not None:
-        st.markdown("---") # 구분선 추가
         st.header("📖 선택된 이전 대화 내용")
         
         selected_conv = st.session_state.conversations[st.session_state.selected_conversation_index]
@@ -482,7 +374,110 @@ if __name__ == "__main__":
         st.subheader("🙋‍♂️ 사용자 질문:")
         st.markdown(selected_conv['user_query'])
         
+        if 'travel_style_selected' in selected_conv and selected_conv['travel_style_selected'] and selected_conv['travel_style_selected'] != '특정 없음':
+            st.subheader("✨ 선택된 여행 성향:")
+            st.markdown(selected_conv['travel_style_selected'])
+
         st.subheader("🤖 챗봇 답변:")
         st.markdown(selected_conv['chatbot_response'])
         
-        st.markdown("---") # 구분선 추가
+        st.markdown("---")
+        if st.button("새로운 대화 시작하기"):
+            st.session_state.selected_conversation_index = None
+            st.session_state.current_input = "" # 입력창도 초기화
+            st.rerun()
+
+    else: # 이전 대화가 선택되지 않은 경우 (새로운 질문 입력 상태)
+        age, travel_style_list, current_user_lat, current_user_lon, \
+        trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
+
+        st.header("② 질문하기")
+        user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
+
+        if st.button("여행 계획 추천받기"):
+            # 새로운 질문 시작 시, 현재 선택된 대화 초기화
+            st.session_state.selected_conversation_index = None 
+
+            lat_to_invoke = current_user_lat
+            lon_to_invoke = current_user_lon
+
+            age_to_invoke = age
+            travel_style_to_invoke = ', '.join(travel_style_list) if travel_style_list else '특정 없음'
+            trip_duration_days_to_invoke = trip_duration_days
+            estimated_budget_to_invoke = estimated_budget
+            num_travelers_to_invoke = num_travelers
+            special_requests_to_invoke = special_requests
+
+            if lat_to_invoke is None or lon_to_invoke is None:
+                st.warning("위치 정보가 없으므로 답변을 생성할 수 없습니다. 위치 정보를 입력하거나 가져와 주세요.")
+            elif not user_query.strip():
+                st.warning("질문을 입력해주세요.")
+            else:
+                with st.spinner("최적의 여행 계획을 수립 중입니다..."):
+                    try:
+                        response = qa_chain.invoke({
+                            "input": user_query,
+                            "age": age_to_invoke,
+                            "travel_style": travel_style_to_invoke,
+                            "user_lat": lat_to_invoke,
+                            "user_lon": lon_to_invoke,
+                            "trip_duration_days": trip_duration_days_to_invoke,
+                            "estimated_budget": estimated_budget_to_invoke,
+                            "num_travelers": num_travelers_to_invoke,
+                            "special_requests": special_requests_to_invoke
+                        })
+
+                        rag_result_text = response["answer"]
+
+                        processed_output_lines = []
+                        processed_place_names = set()
+
+                        # LLM 응답에서 관광지 정보 추출 및 거리 추가
+                        for line in rag_result_text.split('\n'):
+                            name_match = re.search(r"관광지 이름:\s*(.+)", line)
+
+                            if name_match:
+                                current_place_name = name_match.group(1).strip()
+                                # 이미 처리된 관광지는 건너뛰어 중복 방지
+                                if current_place_name not in processed_place_names:
+                                    processed_output_lines.append(line)
+                                    processed_place_names.add(current_place_name)
+
+                                    found_place_data = tour_data_df[
+                                        (tour_data_df['관광지명'].str.strip() == current_place_name) &
+                                        (pd.notna(tour_data_df['위도'])) &
+                                        (pd.notna(tour_data_df['경도']))
+                                    ]
+
+                                    if not found_place_data.empty:
+                                        place_lat = found_place_data['위도'].iloc[0]
+                                        place_lon = found_place_data['경도'].iloc[0]
+                                        distance = haversine(lat_to_invoke, lon_to_invoke, place_lat, place_lon)
+                                        processed_output_lines.append(f"- 사용자 위치 기준 거리(km): 약 {distance:.2f} km")
+                                    else:
+                                        processed_output_lines.append("- 사용자 위치 기준 거리(km): 정보 없음 (데이터 불일치 또는 좌표 누락)")
+                                else:
+                                    pass # 이미 처리된 관광지명은 건너뛰기
+                            else:
+                                # '거리(km):' 정보가 이미 포함된 라인은 중복 추가 방지 (혹시 LLM이 넣었을 경우)
+                                if not re.search(r"거리\(km\):", line):
+                                    processed_output_lines.append(line)
+
+                        final_display_text = "\n".join(processed_output_lines)
+                        
+                        # 새로운 대화 쌍을 저장
+                        st.session_state.conversations.append({
+                            "user_query": user_query,
+                            "chatbot_response": final_display_text,
+                            "travel_style_selected": travel_style_to_invoke # 선택된 여행 성향 저장
+                        })
+
+                        st.subheader("✅ 추천 결과 및 상세 여행 계획")
+                        st.markdown(final_display_text)
+
+                    except ValueError as ve:
+                        st.error(f"체인 호출 중 오류 발생: {ve}. 입력 키를 확인해주세요.")
+                    except Exception as e:
+                        st.error(f"예상치 못한 오류 발생: {e}")
+
+            st.session_state.current_input = "" # 입력창 초기화
