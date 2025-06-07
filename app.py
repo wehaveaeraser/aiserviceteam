@@ -326,11 +326,14 @@ if __name__ == "__main__":
         st.session_state.app_started = False
     
     # 세션 상태 초기화 및 이전 대화 기록 관리
+    # 'messages' 세션 상태는 사용하지 않으므로, 충돌 방지를 위해 제거 로직 추가
     if "conversations" not in st.session_state:
         st.session_state.conversations = []
         st.session_state.current_input = ""
         st.session_state.selected_conversation_index = None
-    
+    if "messages" in st.session_state: # 기존 messages 상태가 남아있을 경우 삭제
+        del st.session_state.messages
+
     # 시작 화면
     if not st.session_state.app_started:
         st.title("✈️ 떠나자! 맞춤형 여행 계획 챗봇")
@@ -338,7 +341,7 @@ if __name__ == "__main__":
         
         st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 
                  caption="여행의 시작은 비행기에서부터!", 
-                 use_column_width=True)
+                 use_container_width=True) # 수정된 부분: use_column_width -> use_container_width
         
         st.write("""
         이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 
@@ -360,11 +363,13 @@ if __name__ == "__main__":
         with st.sidebar:
             st.subheader("💡이전 대화")
             if st.session_state.conversations:
+                # 최신 대화를 먼저 보여주기 위해 역순으로 반복
                 for i, conv in enumerate(reversed(st.session_state.conversations)):
                     original_index = len(st.session_state.conversations) - 1 - i
                     
                     if 'travel_style_selected' in conv and conv['travel_style_selected'] and conv['travel_style_selected'] != '특정 없음':
                         preview_text = f"성향: {conv['travel_style_selected']}"
+                        # 미리보기 텍스트가 너무 길면 잘라냄
                         if len(preview_text) > 25:
                             preview_text = preview_text[:22] + '...'
                     else:
