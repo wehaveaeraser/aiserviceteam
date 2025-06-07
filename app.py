@@ -136,7 +136,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
-            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
+            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
             continue
 
         current_encoding = 'cp949'
@@ -325,7 +325,7 @@ if __name__ == "__main__":
         """
         <style>
         .stApp {
-            background-color: #32CD32; /* 연두색 계열 */
+            background-color: #F0FFF0; /* 연두색 계열 */
         }
         </style>
         """,
