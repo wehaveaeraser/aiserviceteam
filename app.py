@@ -17,14 +17,19 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
+
+# .env 파일 로드 (로컬 개발 시 사용. Streamlit Cloud에서는 Secrets 사용 권장)
 load_dotenv()
 
 st.set_page_config(page_title="✈️ 관광지 추천 챗봇", layout="wide")
 
 # --- 파일 경로 정의 (상수) ---
+# GitHub 저장소에 업로드할 때 이 경로가 올바르게 설정되어 있어야 합니다.
+# 예: 프로젝트 루트에 CSV 파일들이 있다면 "./파일명.csv"
 VECTOR_DB_PATH = "faiss_tourist_attractions"
 
 # 로드할 개별 관광지 CSV 파일 목록을 직접 지정합니다.
+# 이 파일들은 GitHub 저장소의 앱 스크립트와 동일한 위치 또는 지정된 상대 경로에 있어야 합니다.
 TOUR_CSV_FILES = [
     "./경기도역사관광지현황.csv",
     "./경기도자연관광지현황.csv",
@@ -38,6 +43,7 @@ TOUR_CSV_FILES = [
 # --- 초기 파일 존재 여부 확인 ---
 required_files = TOUR_CSV_FILES
 for f_path in required_files:
+    # GitHub 배포 시, 이 os.path.exists 검사는 Git 저장소 내의 파일 존재 여부를 확인합니다.
     if not os.path.exists(f_path):
         st.error(f"필수 데이터 파일 '{f_path}'을(를) 찾을 수 없습니다. 경로를 확인해주세요. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
         st.stop()
@@ -53,7 +59,7 @@ def setup_environment():
     if 'OPENAI_API_KEY' in st.secrets:
         return st.secrets['OPENAI_API_KEY']
     else:
-        load_dotenv() # 로컬 개발 시 .env 파일에서 로드 시도
+        # load_dotenv()는 이 함수 바깥에서 한 번 호출되므로 여기서는 생략
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
             pass
@@ -76,9 +82,10 @@ def load_specific_tour_data(file_paths_list):
             st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
-        current_encoding = 'cp949'
+        current_encoding = 'cp494' # CP949 인코딩으로 지정
 
         try:
+            # GitHub에 파일이 있다면, Streamlit은 해당 경로에서 파일을 읽어옵니다.
             df = pd.read_csv(file_path, encoding=current_encoding)
             df.columns = df.columns.str.strip()
 
@@ -135,6 +142,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
         current_encoding = 'cp949'
 
         try:
+            # CSVLoader도 GitHub 저장소 내의 상대 경로를 사용하여 파일을 읽습니다.
             city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
             all_city_tour_docs.extend(city_tour_loader.load())
         except Exception as e:
@@ -150,12 +158,15 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     docs = text_splitter.split_documents(all_documents)
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_documents(docs, embeddings)
+    # 벡터스토어 저장 시에도 Streamlit 앱이 실행되는 환경의 로컬 경로에 저장됩니다.
+    # Streamlit Cloud에서는 컨테이너 내의 임시 저장소에 저장되며, 다음 세션에서 재활용됩니다.
     vectorstore.save_local(VECTOR_DB_PATH)
     return vectorstore
 
 @st.cache_resource()
 def get_vectorstore_cached(tour_csv_files_list):
     """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
+    # os.path.exists(VECTOR_DB_PATH)로 이미 생성된 벡터스토어가 있는지 확인합니다.
     if os.path.exists(VECTOR_DB_PATH):
         try:
             return FAISS.load_local(
@@ -314,7 +325,7 @@ if __name__ == "__main__":
         """
         <style>
         .stApp {
-            background-color: #e0f2f7; /* 산뜻한 하늘색 계열 */
+            background-color: #8DB600; /* 연색 계열 */
         }
         </style>
         """,
@@ -336,11 +347,11 @@ if __name__ == "__main__":
 
     # 시작 화면
     if not st.session_state.app_started:
-        st.title("✈️ 떠나자! 맞춤형 여행 계획 챗봇")
+        st.title("🚂떠나자! 맞춤형 여행 계획 챗봇")
         st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
         
-        st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 
-                 caption="여행의 시작은 비행기에서부터!", 
+        st.image("./trainj.pg", 
+                 caption="여행의 시작은 지금부터!", 
                  use_container_width=True) # 수정된 부분: use_column_width -> use_container_width
         
         st.write("""
@@ -349,15 +360,15 @@ if __name__ == "__main__":
         이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
         """)
         
-        if st.button("✈️ 여행 계획 시작하기"):
+        if st.button("🚂여행 계획 시작하기"):
             st.session_state.app_started = True
             st.rerun() # 앱 다시 시작하여 챗봇 화면으로 전환
 
     else: # 앱 시작 플래그가 True인 경우 챗봇 화면 표시
         st.title("🗺️ 위치 기반 관광지 추천 및 여행 계획 챗봇")
         vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
-        qa_chain = get_qa_chain(vectorstore)
         tour_data_df = load_specific_tour_data(TOUR_CSV_FILES)
+        qa_chain = get_qa_chain(vectorstore) # DataFrame 로드 후 qa_chain 초기화
 
         # Sidebar for previous conversations
         with st.sidebar:
