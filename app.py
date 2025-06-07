@@ -82,7 +82,7 @@ def load_specific_tour_data(file_paths_list):
             st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
-        current_encoding = 'cp494' # CP949 인코딩으로 지정
+        current_encoding = 'cp949' # CP949 인코딩으로 지정
 
         try:
             # GitHub에 파일이 있다면, Streamlit은 해당 경로에서 파일을 읽어옵니다.
