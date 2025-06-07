@@ -85,7 +85,7 @@ def load_specific_tour_data(file_paths_list): # utf8_files 파라미터 제거
             continue
 
         # 모든 파일에 CP949 인코딩 적용
-        current_encoding = 'cp949'
+        current_encoding = 'cp949' # 올바른 인코딩으로 다시 확인
 
         try:
             df = pd.read_csv(file_path, encoding=current_encoding)
@@ -325,17 +325,19 @@ if __name__ == "__main__":
     initialize_streamlit_app()
 
     vectorstore = get_vectorstore_cached(TOUR_CSV_FILES) # 인자 제거
-    qa_chain = get_qa_chain(vectorstore)
 
-    tour_data_df = load_specific_tour_data(TOUR_CSV_FILES) # 인자 제거
-
-    # 세션 상태 초기화: 각 대화는 { "user": "사용자 질문", "assistant": "챗봇 답변" } 형태로 저장됩니다.
-    if "conversations" not in st.session_state:
-        st.session_state.conversations = []
-    if "current_input" not in st.session_state:
+    # --- 세션 상태 초기화 및 이전 대화 기록 관리 ---
+    # `conversations`가 정의되지 않았거나, 기존에 `messages`가 남아있다면 모두 초기화
+    # 이는 이전에 사용하던 `messages` 형식이 남아있을 때 발생하는 KeyError를 방지합니다.
+    if "conversations" not in st.session_state or "messages" in st.session_state:
+        st.session_state.conversations = [] # 새로운 형식으로 초기화
+        if "messages" in st.session_state:
+            del st.session_state.messages # 이전 형식은 삭제
         st.session_state.current_input = ""
-    if "selected_conversation_index" not in st.session_state:
         st.session_state.selected_conversation_index = None
+
+    qa_chain = get_qa_chain(vectorstore)
+    tour_data_df = load_specific_tour_data(TOUR_CSV_FILES)
 
     # Sidebar for previous conversations
     with st.sidebar:
@@ -347,11 +349,12 @@ if __name__ == "__main__":
                 original_index = len(st.session_state.conversations) - 1 - i
                 
                 # 사용자 질문의 첫 몇 글자를 따와서 버튼 텍스트로 사용
-                preview_text = conv['user'][:30] + ('...' if len(conv['user']) > 30 else '')
+                # 'user_query' 키를 사용 (새로운 대화 형식)
+                preview_text = conv['user_query'][:30] + ('...' if len(conv['user_query']) > 30 else '')
                 
                 if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
                     st.session_state.selected_conversation_index = original_index
-                    st.rerun() # 변경된 부분
+                    st.rerun() # <--- st.rerun()으로 수정되었습니다.
 
         else:
             st.info("이전 대화가 없습니다.")
@@ -364,7 +367,7 @@ if __name__ == "__main__":
     user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
 
     if st.button("여행 계획 추천받기"):
-        # 현재 선택된 대화 초기화 (새로운 질문 시작 시)
+        # 새로운 질문 시작 시, 현재 선택된 대화 초기화
         st.session_state.selected_conversation_index = None 
 
         lat_to_invoke = current_user_lat
@@ -391,12 +394,8 @@ if __name__ == "__main__":
 
         if lat_to_invoke is None or lon_to_invoke is None:
             st.warning("위치 정보가 없으므로 답변을 생성할 수 없습니다. 위치 정보를 입력하거나 가져와 주세요.")
-            # st.session_state.messages.append({"role": "assistant", "content": "위치 정보가 없으므로 답변을 생성할 수 없습니다."})
-            # 위 메시지는 이제 conversation에 저장되지 않음
         elif not user_query.strip():
             st.warning("질문을 입력해주세요.")
-            # st.session_state.messages.append({"role": "assistant", "content": "질문을 입력해주세요."})
-            # 위 메시지는 이제 conversation에 저장되지 않음
         else:
             with st.spinner("최적의 여행 계획을 수립 중입니다..."):
                 try:
@@ -461,10 +460,8 @@ if __name__ == "__main__":
 
                 except ValueError as ve:
                     st.error(f"체인 호출 중 오류 발생: {ve}. 입력 키를 확인해주세요.")
-                    # 오류 메시지도 대화 기록에 포함시키려면 여기에 추가 로직 필요
                 except Exception as e:
                     st.error(f"예상치 못한 오류 발생: {e}")
-                    # 오류 메시지도 대화 기록에 포함시키려면 여기에 추가 로직 필요
 
         st.session_state.current_input = "" # 입력창 초기화
 
