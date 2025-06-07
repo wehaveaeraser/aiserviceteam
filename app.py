@@ -23,6 +23,233 @@ load_dotenv()
 
 st.set_page_config(page_title="✈️ 관광지 추천 챗봇", layout="wide")
 
+# --- 커스텀 CSS 정의 ---
+# 여기서 불필요하거나 잘못된 문자를 제거했습니다.
+st.markdown(
+    """
+    <style>
+    /* 전체 배경색 및 폰트 */
+    .stApp {
+        background-color: #f8f9fa; /* 밝은 회색, 거의 흰색 */
+        color: #343a40; /* 어두운 회색 텍스트 */
+        font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    /* 제목 스타일 */
+    h1 {
+        color: #007bff; /* 강렬한 파란색 */
+        text-align: center;
+        font-size: 3.2em;
+        margin-bottom: 0.6em;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    h2 {
+        color: #28a745; /* 초록색 강조 */
+        font-size: 2.2em;
+        border-bottom: 3px solid #e9ecef; /* 깔끔한 구분선 */
+        padding-bottom: 0.4em;
+        margin-top: 2em;
+        margin-bottom: 1.5em;
+        display: flex;
+        align-items: center;
+    }
+    h2 .icon {
+        font-size: 1.2em;
+        margin-right: 10px;
+    }
+    h3 {
+        color: #6c757d; /* 중간 회색 */
+        font-size: 1.6em;
+        margin-top: 1.5em;
+        margin-bottom: 1em;
+    }
+    h4 {
+        color: #495057;
+        font-size: 1.2em;
+        margin-top: 1em;
+        margin-bottom: 0.6em;
+    }
+
+    /* 사이드바 스타일 */
+    .stSidebar {
+        background-color: #ffffff; /* 흰색 사이드바 */
+        color: #343a40;
+        border-right: 1px solid #dee2e6;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    }
+    .stSidebar .stButton>button {
+        width: 100%;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border: none;
+        background-color: #e9ecef; /* 버튼 배경색 */
+        color: #343a40;
+        font-size: 1em;
+        padding: 10px 15px;
+        transition: all 0.2s ease-in-out;
+    }
+    .stSidebar .stButton>button:hover {
+        background-color: #007bff; /* 호버시 색상 */
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stSidebar .stSubheader {
+        color: #007bff;
+        text-align: center;
+        margin-bottom: 1.5em;
+        font-size: 1.4em;
+    }
+    .stSidebar .stInfo {
+        background-color: #e0f7fa;
+        border-left: 5px solid #00acc1;
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+
+    /* 입력 위젯 스타일 */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stMultiSelect>div>div>div {
+        border-radius: 10px;
+        border: 1px solid #ced4da;
+        padding: 12px;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        background-color: #ffffff;
+        font-size: 1.05em;
+    }
+    .stNumberInput>div>div>input {
+        border-radius: 10px;
+        border: 1px solid #ced4da;
+        padding: 12px;
+        background-color: #ffffff;
+        font-size: 1.05em;
+    }
+    .stForm {
+        padding: 30px;
+        border-radius: 15px;
+        background-color: #ffffff;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+    }
+    .stForm button {
+        margin-top: 20px;
+    }
+
+    /* 버튼 스타일 */
+    .stButton>button {
+        background-color: #007bff; /* 주 버튼 파란색 */
+        color: white;
+        border-radius: 12px;
+        padding: 12px 25px;
+        font-size: 1.2em;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 5px 10px rgba(0,123,255,0.2);
+        transition: all 0.3s ease-in-out;
+        cursor: pointer;
+    }
+    .stButton>button:hover {
+        background-color: #0056b3; /* 호버 시 더 진하게 */
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,123,255,0.3);
+    }
+    /* 특정 버튼 (새로운 대화 시작하기) 스타일 */
+    /* Streamlit 1.28+에서 button key에 따라 style 주는 방법 */
+    /* 현재 코드에서는 st.button("새로운 대화 시작하기")에 kind="secondary"를 명시적으로 주지 않았으므로 이 선택자는 적용되지 않을 수 있습니다. */
+    /* 만약 특정 버튼에 스타일을 적용하고 싶다면 st.button("새로운 대화 시작하기", type="secondary")와 같이 type을 지정하거나, 
+       버튼의 key를 활용하는 다른 CSS 선택자를 고려해야 합니다. */
+    .stButton button[kind="secondary"] { 
+        background-color: #6c757d; /* 회색 버튼 */
+        box-shadow: 0 3px 6px rgba(108,117,125,0.2);
+    }
+    .stButton button[kind="secondary"]:hover {
+        background-color: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 10px rgba(108,117,125,0.3);
+    }
+
+
+    /* 경고/성공/정보 메시지 스타일 */
+    .stAlert {
+        border-radius: 10px;
+        padding: 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        font-size: 1.05em;
+    }
+    .stAlert.success {
+        background-color: #d4edda;
+        color: #155724;
+        border-left: 5px solid #28a745;
+    }
+    .stAlert.warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border-left: 5px solid #ffc107;
+    }
+    .stAlert.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-left: 5px solid #dc3545;
+    }
+    .stAlert.info {
+        background-color: #e0f7fa;
+        color: #0056b3;
+        border-left: 5px solid #007bff;
+    }
+    
+    /* 스피너 스타일 */
+    .stSpinner > div > div {
+        color: #007bff; /* 스피너 색상 변경 */
+    }
+
+    /* 마크다운 테이블 스타일 (여행 계획표) */
+    /* Streamlit의 st.dataframe은 AgGrid 기반이므로 AgGrid 관련 클래스를 사용합니다. */
+    /* 아래 CSS는 st.dataframe에만 적용될 수 있습니다. st.markdown으로 생성된 테이블에는 적용되지 않을 수 있습니다. */
+    .st-ag .ag-header-cell {
+        background-color: #007bff !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
+        font-size: 1.1em;
+    }
+    .st-ag .ag-cell {
+        background-color: #ffffff !important;
+        color: #343a40 !important;
+        padding: 12px !important;
+    }
+    .st-ag .ag-row-even {
+        background-color: #f8f9fa !important;
+    }
+    .st-ag .ag-row-odd {
+        background-color: #ffffff !important;
+    }
+    .ag-root-wrapper {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    /* 입력 필드 레이블 */
+    .stTextInput label, .stTextArea label, .stSelectbox label, .stMultiSelect label, .stNumberInput label {
+        font-weight: bold;
+        color: #495057;
+        font-size: 1.1em;
+        margin-bottom: 0.5em;
+    }
+
+    /* 구분선 */
+    hr {
+        margin-top: 3em;
+        margin-bottom: 3em;
+        border: 0;
+        height: 1px;
+        background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 123, 255, 0.75), rgba(0, 0, 0, 0));
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # --- 파일 경로 정의 (상수) ---
 # GitHub 저장소에 업로드할 때 이 경로가 올바르게 설정되어 있어야 합니다.
 # 예: 프로젝트 루트에 CSV 파일들이 있다면 "./파일명.csv"
@@ -82,7 +309,8 @@ def load_specific_tour_data(file_paths_list):
             st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
-        current_encoding = 'cp949' # CP949 인코딩으로 지정
+        # 'cp494' 오류 수정: 'cp949'로 변경
+        current_encoding = 'cp949' 
 
         try:
             # GitHub에 파일이 있다면, Streamlit은 해당 경로에서 파일을 읽어옵니다.
@@ -136,13 +364,12 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
-            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
+            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
             continue
 
-        current_encoding = 'cp949'
+        current_encoding = 'cp949' 
 
         try:
-            # CSVLoader도 GitHub 저장소 내의 상대 경로를 사용하여 파일을 읽습니다.
             city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
             all_city_tour_docs.extend(city_tour_loader.load())
         except Exception as e:
@@ -158,15 +385,12 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     docs = text_splitter.split_documents(all_documents)
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_documents(docs, embeddings)
-    # 벡터스토어 저장 시에도 Streamlit 앱이 실행되는 환경의 로컬 경로에 저장됩니다.
-    # Streamlit Cloud에서는 컨테이너 내의 임시 저장소에 저장되며, 다음 세션에서 재활용됩니다.
     vectorstore.save_local(VECTOR_DB_PATH)
     return vectorstore
 
 @st.cache_resource()
 def get_vectorstore_cached(tour_csv_files_list):
     """캐시된 벡터스토어를 로드하거나 새로 생성합니다."""
-    # os.path.exists(VECTOR_DB_PATH)로 이미 생성된 벡터스토어가 있는지 확인합니다.
     if os.path.exists(VECTOR_DB_PATH):
         try:
             return FAISS.load_local(
@@ -319,25 +543,12 @@ if __name__ == "__main__":
     openai_api_key = setup_environment()
     if not openai_api_key:
         st.stop()
-
-    # Streamlit 앱의 배경 색상 설정
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background-color: #F0FFF0; /* 연두색 계열 */
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
+    
     # 세션 상태 초기화: 'app_started' 플래그 추가
     if "app_started" not in st.session_state:
         st.session_state.app_started = False
     
     # 세션 상태 초기화 및 이전 대화 기록 관리
-    # 'messages' 세션 상태는 사용하지 않으므로, 충돌 방지를 위해 제거 로직 추가
     if "conversations" not in st.session_state:
         st.session_state.conversations = []
         st.session_state.current_input = ""
@@ -347,25 +558,37 @@ if __name__ == "__main__":
 
     # 시작 화면
     if not st.session_state.app_started:
-        st.title("🚂떠나자! 맞춤형 여행 계획 챗봇")
+        st.title("✈️ 떠나자! 맞춤형 여행 계획 챗봇")
         st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
         
-        st.image("./train.jpg", 
-                 caption="여행의 시작은 지금부터!", 
-                 use_container_width=True) # 수정된 부분: use_column_width -> use_container_width
+        # PNG 이미지 파일 경로 (예: airplane.png)
+        local_image_path = "./airplane.png" 
         
+        # 이미지 파일 존재 여부 확인 (GitHub 배포 시 경로 확인에 유용)
+        if os.path.exists(local_image_path):
+            st.image(local_image_path, 
+                     caption="여행의 시작은 비행기에서부터!", 
+                     use_container_width=True) 
+        else:
+            # 이미지가 없을 경우 대체 텍스트 또는 경고 메시지 표시
+            st.warning(f"시작 화면 이미지를 찾을 수 없습니다: {local_image_path}") #
+            # 또는 대체 URL 이미지를 사용할 수도 있습니다.
+            # st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 
+            #          caption="여행의 시작은 비행기에서부터!", 
+            #          use_container_width=True)
+
         st.write("""
         이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 
         상세한 일자별 여행 계획을 세워줍니다. 
         이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
         """)
         
-        if st.button("🚂여행 계획 시작하기"):
+        if st.button("✈️ 여행 계획 시작하기"):
             st.session_state.app_started = True
             st.rerun() # 앱 다시 시작하여 챗봇 화면으로 전환
 
     else: # 앱 시작 플래그가 True인 경우 챗봇 화면 표시
-        st.title("🗺️위치 기반 관광지 추천 및 여행 계획 챗봇")
+        st.title("🗺️ 위치 기반 관광지 추천 및 여행 계획 챗봇")
         vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
         tour_data_df = load_specific_tour_data(TOUR_CSV_FILES)
         qa_chain = get_qa_chain(vectorstore) # DataFrame 로드 후 qa_chain 초기화
@@ -532,6 +755,7 @@ if __name__ == "__main__":
                                             else:
                                                 st.warning("여행 계획 테이블의 행과 열의 수가 일치하지 않아 표를 생성할 수 없습니다. LLM 응답 형식을 확인해주세요.")
                                         else:
+                                        #
                                             st.warning("여행 계획 테이블 내용을 파싱할 수 없습니다. LLM이 요청된 표 형식을 따르지 않았을 수 있습니다.")
                                     else:
                                         st.warning("여행 계획이 유효한 표 형식으로 제공되지 않았습니다.")
