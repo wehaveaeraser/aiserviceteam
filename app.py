@@ -85,7 +85,7 @@ def load_specific_tour_data(file_paths_list):
             continue
 
         # 모든 파일에 CP949 인코딩 적용
-        current_encoding = 'cp494' # Typo: cp949 -> cp494로 수정
+        current_encoding = 'cp949'
 
         try:
             df = pd.read_csv(file_path, encoding=current_encoding)
@@ -142,7 +142,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
             continue
 
         # 모든 파일에 CP949 인코딩 적용
-        current_encoding = 'cp494' # Typo: cp949 -> cp494로 수정
+        current_encoding = 'cp949'
 
         try:
             city_tour_loader = CSVLoader(file_path=file_path, encoding=current_encoding, csv_args={'delimiter': ','})
@@ -325,18 +325,12 @@ if __name__ == "__main__":
     vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
 
     # --- 세션 상태 초기화 및 이전 대화 기록 관리 ---
-    # conversations 리스트에 딕셔너리를 저장하며, 각 딕셔너리는
-    # 'user_query', 'chatbot_response'(원본 텍스트), 'travel_style_selected',
-    # 그리고 파싱된 DataFrame을 저장할 'parsed_plan_df' 키를 포함합니다.
-    if "conversations" not in st.session_state:
+    if "conversations" not in st.session_state or "messages" in st.session_state:
         st.session_state.conversations = []
-    
-    # messages는 이전 버전에서 사용된 것이므로, 필요 없다면 삭제
-    if "messages" in st.session_state:
-        del st.session_state.messages
-    
-    st.session_state.current_input = ""
-    st.session_state.selected_conversation_index = None
+        if "messages" in st.session_state:
+            del st.session_state.messages
+        st.session_state.current_input = ""
+        st.session_state.selected_conversation_index = None
 
     qa_chain = get_qa_chain(vectorstore)
     tour_data_df = load_specific_tour_data(TOUR_CSV_FILES)
@@ -376,34 +370,8 @@ if __name__ == "__main__":
             st.markdown(selected_conv['travel_style_selected'])
 
         st.subheader("🤖 챗봇 답변:")
-        
-        # --- 변경된 부분: 이전 대화에서 저장된 DataFrame이 있다면 st.dataframe으로 표시 ---
-        if 'parsed_plan_df' in selected_conv and selected_conv['parsed_plan_df'] is not None:
-            # 원본 텍스트 중 표 부분 제외하고 표시
-            raw_text_without_table = ""
-            in_table_section_flag = False
-            for line in selected_conv['chatbot_response'].split('\n'):
-                if "상세 여행 계획" in line and "일차 | 시간 | 활동" not in line:
-                    in_table_section_flag = True # 테이블 섹션 시작
-                    raw_text_without_table += line + "\n" # '상세 여행 계획' 헤더는 포함
-                    continue
-                if in_table_section_flag and ("|" in line and "--" in selected_conv['chatbot_response'].split('\n')[selected_conv['chatbot_response'].split('\n').index(line) + 1] if selected_conv['chatbot_response'].split('\n').index(line) + 1 < len(selected_conv['chatbot_response'].split('\n')) else False):
-                    # 테이블 헤더 라인과 구분자 라인부터는 건너뛰기
-                    continue
-                if in_table_section_flag and "|" in line:
-                    # 테이블 데이터 라인도 건너뛰기
-                    continue
-                
-                # 테이블 섹션이 아니거나, 테이블 섹션이 끝난 후의 내용만 추가
-                if not in_table_section_flag or (in_table_section_flag and not ("|" in line or "--" in line)):
-                    raw_text_without_table += line + "\n"
-            
-            st.markdown(raw_text_without_table) # 표를 제외한 일반 텍스트 부분 표시
-            st.dataframe(selected_conv['parsed_plan_df'], use_container_width=True)
-        else:
-            # DataFrame이 저장되지 않았다면, 원본 텍스트 전체를 마크다운으로 표시
-            st.markdown(selected_conv['chatbot_response'])
-        # --- 변경된 부분 끝 ---
+        # 이전 대화는 원본 텍스트로 보여줍니다. (표로 파싱하지 않음)
+        st.markdown(selected_conv['chatbot_response'])
         
         st.markdown("---")
         if st.button("새로운 대화 시작하기"):
@@ -456,10 +424,6 @@ if __name__ == "__main__":
                         processed_place_names = set()
                         table_plan_text = ""
                         in_plan_section = False # 여행 계획 섹션인지 확인하는 플래그
-                        
-                        # --- 새로 추가된 변수: 파싱된 DataFrame을 저장할 변수 ---
-                        parsed_df_for_session = None 
-                        # --- 끝 ---
 
                         # LLM 응답에서 관광지 정보 추출 및 거리 추가 (기존 로직 유지)
                         for line in rag_result_text.split('\n'):
@@ -492,6 +456,7 @@ if __name__ == "__main__":
                                     if not re.search(r"거리\(km\):", line):
                                         processed_output_lines.append(line)
                             else:
+                                # 여행 계획 섹션의 라인들을 별도로 저장 (표 파싱용)
                                 table_plan_text += line + "\n"
 
                         # 추천 관광지 및 일반적인 정보 먼저 표시
@@ -503,12 +468,16 @@ if __name__ == "__main__":
                             try:
                                 plan_lines = table_plan_text.strip().split('\n')
                                 
+                                # Markdown 테이블의 헤더와 구분자 라인 검사
                                 if len(plan_lines) >= 2 and plan_lines[0].count('|') >= 2 and plan_lines[1].count('|') >= 2 and all(re.match(r'^-+$', s.strip()) for s in plan_lines[1].split('|') if s.strip()):
                                     header = [h.strip() for h in plan_lines[0].split('|') if h.strip()]
                                     data_rows = []
                                     for row_str in plan_lines[2:]:
                                         if row_str.strip() and row_str.startswith('|'):
+                                            # 각 셀에서 불필요한 공백 제거
+                                            # 단, 빈 셀은 그대로 빈 문자열로 유지
                                             parsed_row = [d.strip() for d in row_str.split('|')]
+                                            # 첫 번째와 마지막 빈 문자열 제거 (split 결과)
                                             if parsed_row and parsed_row[0] == '':
                                                 parsed_row = parsed_row[1:]
                                             if parsed_row and parsed_row[-1] == '':
@@ -516,25 +485,29 @@ if __name__ == "__main__":
                                             data_rows.append(parsed_row)
 
                                     if data_rows:
+                                        # 헤더와 데이터 컬럼 수가 다를 경우 에러 방지
                                         if all(len(row) == len(header) for row in data_rows):
                                             temp_plan_df = pd.DataFrame(data_rows, columns=header)
                                             
+                                            # --- 핵심 변경: '일차' 컬럼을 인덱스로 설정하고, 중복 인덱스 숨기기 ---
                                             if '일차' in temp_plan_df.columns:
-                                                # '일차' 컬럼의 연속적인 중복 값을 빈 문자열로 변경하여 시각적으로 숨김
+                                                # ` 일차 ` 컬럼의 연속적인 중복 값을 NaN으로 변경하여 시각적으로 숨김
                                                 for i in range(1, len(temp_plan_df)):
                                                     if temp_plan_df.loc[i, '일차'] == temp_plan_df.loc[i-1, '일차']:
-                                                        temp_plan_df.loc[i, '일차'] = '' 
+                                                        temp_plan_df.loc[i, '일차'] = '' # 빈 문자열로 설정하여 숨김
                                                 
+                                                # '일차' 컬럼을 인덱스로 설정
+                                                # (주의: set_index는 복사본을 반환하므로 다시 할당해야 함)
                                                 plan_df_styled = temp_plan_df.set_index('일차')
-                                                parsed_df_for_session = plan_df_styled # 세션에 저장할 DataFrame
                                                 
                                                 st.subheader("🗓️ 상세 여행 계획 (표)")
+                                                # st.dataframe에 DataFrame Styler 사용
                                                 st.dataframe(plan_df_styled, use_container_width=True)
                                             else:
                                                 st.subheader("🗓️ 상세 여행 계획 (표)")
                                                 st.dataframe(temp_plan_df, use_container_width=True)
                                                 st.warning("여행 계획에 '일차' 컬럼이 없어 그룹화하여 표시할 수 없습니다.")
-                                                parsed_df_for_session = temp_plan_df # '일차' 없는 DF도 저장
+                                            # --- 핵심 변경 끝 ---
                                         else:
                                             st.warning("여행 계획 테이블의 행과 열의 수가 일치하지 않아 표를 생성할 수 없습니다. LLM 응답 형식을 확인해주세요.")
                                     else:
@@ -550,7 +523,6 @@ if __name__ == "__main__":
                         st.session_state.conversations.append({
                             "user_query": user_query,
                             "chatbot_response": rag_result_text, # 원본 LLM 응답을 저장
-                            "parsed_plan_df": parsed_df_for_session, # 파싱된 DataFrame 저장
                             "travel_style_selected": travel_style_to_invoke
                         })
 
