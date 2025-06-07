@@ -5,6 +5,7 @@ from math import radians, sin, cos, sqrt, atan2
 import os
 import re
 import glob
+import io # 추가: StringIO를 위해 임포트
 
 # Langchain 관련 import
 from langchain.chains.retrieval import create_retrieval_chain
@@ -53,13 +54,11 @@ def setup_environment():
     로컬 환경에서는 .env 파일을 로드하거나 시스템 환경 변수에서 가져옵니다.
     """
     if 'OPENAI_API_KEY' in st.secrets:
-        # st.success("✅ OpenAI API 키를 Streamlit Secrets에서 성공적으로 로드했습니다.") # 이 줄을 제거하거나 주석 처리
         return st.secrets['OPENAI_API_KEY']
     else:
         load_dotenv() # 로컬 개발 시 .env 파일에서 로드 시도
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
-            # st.success("✅ OpenAI API 키를 환경 변수(.env 파일 또는 시스템 환경 변수)에서 성공적으로 로드했습니다.") # 이 줄을 제거하거나 주석 처리
             pass # 성공 메시지를 출력하지 않도록 변경
         else:
             st.error("❌ OpenAI API 키를 찾을 수 없습니다. Streamlit Cloud에서는 secrets.toml에 키를 설정하거나, 로컬에서는 .env 파일을 확인해주세요.")
@@ -280,7 +279,7 @@ def get_qa_chain(_vectorstore):
     * 주소: [주소]
     * 주요 시설/특징: [정보]
     **[참고: 사용자 위치 기준 거리는 시스템이 자동으로 계산하여 추가할 것이므로, 이 항목은 제외합니다.]**
-      
+    
 2.  **추천된 관광지를 포함하여, 사용자 정보와 질문에 기반한 {trip_duration_days}일간의 상세 여행 계획을 일자별로 구성해 주세요.**
     * 각 날짜별로 방문할 장소(식당, 카페, 기타 활동 포함), 예상 시간, 간단한 활동 내용을 포함하세요.
     * 예산을 고려하여 적절한 식사 장소나 활동을 제안할 수 있습니다.
@@ -297,15 +296,14 @@ def get_qa_chain(_vectorstore):
   - 주요 시설/특징: [정보 2]
 
 **상세 여행 계획 ({trip_duration_days}일):**
-
-**1일차:**
-- 오전 (9:00 - 12:00): [관광지명 1] 방문 (예: 역사 탐방, 박물관 관람).
-- 점심 (12:00 - 13:00): [근처 식당명] (예: 한식 맛집, {estimated_budget}원에 적합한 메뉴)
-- 오후 (13:00 - 17:00): [관광지명 2] 방문 (예: 자연 경관 감상, 산책). [관광지명 1]에서 버스 30분 이동.
-- 저녁 (17:00 이후): [특정 활동 또는 자유 시간]
-
-**2일차:**
-- ... (이후 날짜별 계획) ...
+다음 표 형식으로 일자별 상세 계획을 작성해 주세요. 컬럼명은 '일차', '시간', '활동', '예상 장소', '이동 방법'으로 해주세요.
+| 일차 | 시간 | 활동 | 예상 장소 | 이동 방법 |
+|---|---|---|---|---|
+| 1일차 | 오전 (9:00 - 12:00) | [활동 내용] | [장소명] | [이동 방법] |
+| 1일차 | 점심 (12:00 - 13:00) | [식사] | [식당명] | - |
+| 1일차 | 오후 (13:00 - 17:00) | [활동 내용] | [장소명] | [이동 방법] |
+| 1일차 | 저녁 (17:00 이후) | [활동 내용] | [장소명 또는 자유 시간] | - |
+| 2일차 | ... | ... | ... | ... |
 """
     )
     document_chain = create_stuff_documents_chain(llm, qa_prompt)
@@ -326,12 +324,10 @@ if __name__ == "__main__":
     vectorstore = get_vectorstore_cached(TOUR_CSV_FILES)
 
     # --- 세션 상태 초기화 및 이전 대화 기록 관리 ---
-    # `conversations`가 정의되지 않았거나, 기존에 `messages`가 남아있다면 모두 초기화
-    # 이는 이전에 사용하던 `messages` 형식이 남아있을 때 발생하는 KeyError를 방지합니다.
     if "conversations" not in st.session_state or "messages" in st.session_state:
-        st.session_state.conversations = [] # 새로운 형식으로 초기화
+        st.session_state.conversations = []
         if "messages" in st.session_state:
-            del st.session_state.messages # 이전 형식은 삭제
+            del st.session_state.messages
         st.session_state.current_input = ""
         st.session_state.selected_conversation_index = None
 
@@ -342,19 +338,14 @@ if __name__ == "__main__":
     with st.sidebar:
         st.subheader("💡 이전 대화")
         if st.session_state.conversations:
-            # 최신 대화가 위에 오도록 역순으로 표시
             for i, conv in enumerate(reversed(st.session_state.conversations)):
-                # 실제 인덱스를 계산 (뒤집힌 순서에 따라)
                 original_index = len(st.session_state.conversations) - 1 - i
                 
-                # 'travel_style_selected' 키를 사용하여 버튼 텍스트 구성
                 if 'travel_style_selected' in conv and conv['travel_style_selected'] and conv['travel_style_selected'] != '특정 없음':
                     preview_text = f"성향: {conv['travel_style_selected']}"
-                    # 너무 길 경우 잘라내기 (선택 사항)
                     if len(preview_text) > 25: 
                         preview_text = preview_text[:22] + '...'
                 else:
-                    # 여행 성향이 없거나 '특정 없음'인 경우 사용자 질문을 표시
                     preview_text = conv['user_query'][:25] + ('...' if len(conv['user_query']) > 25 else '')
                     
                 if st.button(f"대화 {original_index + 1}: {preview_text}", key=f"sidebar_conv_{original_index}"):
@@ -365,7 +356,6 @@ if __name__ == "__main__":
             st.info("이전 대화가 없습니다.")
 
     # --- 메인 콘텐츠 영역 ---
-    # 선택된 이전 대화가 있다면 해당 대화 내용을 표시하고, 아니라면 새로운 질문 입력 UI를 표시
     if st.session_state.selected_conversation_index is not None:
         st.header("📖 선택된 이전 대화 내용")
         
@@ -379,12 +369,13 @@ if __name__ == "__main__":
             st.markdown(selected_conv['travel_style_selected'])
 
         st.subheader("🤖 챗봇 답변:")
+        # 이전 대화는 원본 텍스트로 보여줍니다. (표로 파싱하지 않음)
         st.markdown(selected_conv['chatbot_response'])
         
         st.markdown("---")
         if st.button("새로운 대화 시작하기"):
             st.session_state.selected_conversation_index = None
-            st.session_state.current_input = "" # 입력창도 초기화
+            st.session_state.current_input = ""
             st.rerun()
 
     else: # 이전 대화가 선택되지 않은 경우 (새로운 질문 입력 상태)
@@ -395,7 +386,6 @@ if __name__ == "__main__":
         user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
 
         if st.button("여행 계획 추천받기"):
-            # 새로운 질문 시작 시, 현재 선택된 대화 초기화
             st.session_state.selected_conversation_index = None 
 
             lat_to_invoke = current_user_lat
@@ -431,53 +421,92 @@ if __name__ == "__main__":
 
                         processed_output_lines = []
                         processed_place_names = set()
+                        table_plan_text = ""
+                        in_plan_section = False # 여행 계획 섹션인지 확인하는 플래그
 
-                        # LLM 응답에서 관광지 정보 추출 및 거리 추가
+                        # LLM 응답에서 관광지 정보 추출 및 거리 추가 (기존 로직 유지)
                         for line in rag_result_text.split('\n'):
-                            name_match = re.search(r"관광지 이름:\s*(.+)", line)
+                            if "상세 여행 계획" in line and "일차 | 시간 | 활동" not in line:
+                                # '상세 여행 계획' 헤더만 먼저 추가하고, 이후 테이블 데이터를 파싱
+                                processed_output_lines.append(line)
+                                in_plan_section = True
+                                continue # 다음 라인부터 테이블 파싱 시작
 
-                            if name_match:
-                                current_place_name = name_match.group(1).strip()
-                                # 이미 처리된 관광지는 건너뛰어 중복 방지
-                                if current_place_name not in processed_place_names:
-                                    processed_output_lines.append(line)
-                                    processed_place_names.add(current_place_name)
+                            if not in_plan_section:
+                                name_match = re.search(r"관광지 이름:\s*(.+)", line)
+                                if name_match:
+                                    current_place_name = name_match.group(1).strip()
+                                    if current_place_name not in processed_place_names:
+                                        processed_output_lines.append(line)
+                                        processed_place_names.add(current_place_name)
 
-                                    found_place_data = tour_data_df[
-                                        (tour_data_df['관광지명'].str.strip() == current_place_name) &
-                                        (pd.notna(tour_data_df['위도'])) &
-                                        (pd.notna(tour_data_df['경도']))
-                                    ]
-
-                                    if not found_place_data.empty:
-                                        place_lat = found_place_data['위도'].iloc[0]
-                                        place_lon = found_place_data['경도'].iloc[0]
-                                        distance = haversine(lat_to_invoke, lon_to_invoke, place_lat, place_lon)
-                                        processed_output_lines.append(f"- 사용자 위치 기준 거리(km): 약 {distance:.2f} km")
-                                    else:
-                                        processed_output_lines.append("- 사용자 위치 기준 거리(km): 정보 없음 (데이터 불일치 또는 좌표 누락)")
+                                        found_place_data = tour_data_df[
+                                            (tour_data_df['관광지명'].str.strip() == current_place_name) &
+                                            (pd.notna(tour_data_df['위도'])) &
+                                            (pd.notna(tour_data_df['경도']))
+                                        ]
+                                        if not found_place_data.empty:
+                                            place_lat = found_place_data['위도'].iloc[0]
+                                            place_lon = found_place_data['경도'].iloc[0]
+                                            distance = haversine(lat_to_invoke, lon_to_invoke, place_lat, place_lon)
+                                            processed_output_lines.append(f"- 사용자 위치 기준 거리(km): 약 {distance:.2f} km")
+                                        else:
+                                            processed_output_lines.append("- 사용자 위치 기준 거리(km): 정보 없음 (데이터 불일치 또는 좌표 누락)")
                                 else:
-                                    pass # 이미 처리된 관광지명은 건너뛰기
+                                    if not re.search(r"거리\(km\):", line):
+                                        processed_output_lines.append(line)
                             else:
-                                # '거리(km):' 정보가 이미 포함된 라인은 중복 추가 방지 (혹시 LLM이 넣었을 경우)
-                                if not re.search(r"거리\(km\):", line):
-                                    processed_output_lines.append(line)
+                                # 여행 계획 섹션의 라인들을 별도로 저장 (표 파싱용)
+                                table_plan_text += line + "\n"
 
-                        final_display_text = "\n".join(processed_output_lines)
+                        # 추천 관광지 및 일반적인 정보 먼저 표시
+                        st.subheader("✅ 추천 결과 및 상세 여행 계획")
+                        st.markdown("\n".join(processed_output_lines))
+
+                        # 여행 계획 테이블 파싱 및 표시
+                        if table_plan_text.strip():
+                            try:
+                                plan_lines = table_plan_text.strip().split('\n')
+                                
+                                # Markdown 테이블의 헤더와 구분자 라인 검사
+                                if len(plan_lines) >= 2 and plan_lines[0].count('|') >= 2 and plan_lines[1].count('|') >= 2 and all(re.match(r'^-+$', s.strip()) for s in plan_lines[1].split('|') if s.strip()):
+                                    # 헤더 파싱
+                                    header = [h.strip() for h in plan_lines[0].split('|') if h.strip()]
+                                    data_rows = []
+                                    # 데이터 로우 파싱 (세 번째 라인부터 시작)
+                                    for row_str in plan_lines[2:]:
+                                        if row_str.strip() and row_str.startswith('|'):
+                                            # 각 셀에서 불필요한 공백 제거
+                                            data_rows.append([d.strip() for d in row_str.split('|') if d.strip()])
+
+                                    if data_rows:
+                                        # 헤더와 데이터 컬럼 수가 다를 경우 에러 방지
+                                        if all(len(row) == len(header) for row in data_rows):
+                                            plan_df = pd.DataFrame(data_rows, columns=header)
+                                            st.subheader("🗓️ 상세 여행 계획 (표)")
+                                            st.dataframe(plan_df, use_container_width=True)
+                                        else:
+                                            st.warning("여행 계획 테이블의 행과 열의 수가 일치하지 않아 표를 생성할 수 없습니다. LLM 응답 형식을 확인해주세요.")
+                                    else:
+                                        st.warning("여행 계획 테이블 내용을 파싱할 수 없습니다. LLM이 요청된 표 형식을 따르지 않았을 수 있습니다.")
+                                else:
+                                    st.warning("여행 계획이 유효한 표 형식으로 제공되지 않았습니다.")
+                            except Exception as parse_e:
+                                st.error(f"여행 계획 테이블 파싱 중 오류 발생: {parse_e}. LLM 응답 형식을 확인해주세요.")
+                        else:
+                            st.info("상세 여행 계획이 제공되지 않았습니다.")
                         
-                        # 새로운 대화 쌍을 저장
+                        # 새로운 대화 쌍을 저장합니다.
+                        # 이전 대화를 다시 불러올 때는 원본 LLM 응답 전체를 보여주기 위해 rag_result_text를 저장합니다.
                         st.session_state.conversations.append({
                             "user_query": user_query,
-                            "chatbot_response": final_display_text,
-                            "travel_style_selected": travel_style_to_invoke # 선택된 여행 성향 저장
+                            "chatbot_response": rag_result_text, # 원본 LLM 응답을 저장
+                            "travel_style_selected": travel_style_to_invoke
                         })
-
-                        st.subheader("✅ 추천 결과 및 상세 여행 계획")
-                        st.markdown(final_display_text)
 
                     except ValueError as ve:
                         st.error(f"체인 호출 중 오류 발생: {ve}. 입력 키를 확인해주세요.")
                     except Exception as e:
                         st.error(f"예상치 못한 오류 발생: {e}")
 
-            st.session_state.current_input = "" # 입력창 초기화
+                st.session_state.current_input = "" # 입력창 초기화
