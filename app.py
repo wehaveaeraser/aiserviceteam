@@ -170,7 +170,7 @@ def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제�
 
     if os.path.exists(VECTOR_DB_PATH):
         try:
-            st.info("기존 벡터 DB를 로드 중...")
+            # st.info("기존 벡터 DB를 로드 중...") # Removed this line
             return FAISS.load_local(
                 VECTOR_DB_PATH,
                 OpenAIEmbeddings(),
@@ -180,7 +180,7 @@ def get_vectorstore_cached(tour_csv_files_list): # utf8_files 파라미터 제�
             st.warning(f"기존 벡터 DB 로딩 실패: {e}. 새로 생성합니다.")
             return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
     else:
-        st.info("새로운 벡터 DB를 생성 중...")
+        # st.info("새로운 벡터 DB를 생성 중...") # Removed this line
         return load_and_create_vectorstore_from_specific_files(tour_csv_files_list) # 인자 제거
 
 
@@ -283,7 +283,7 @@ def get_qa_chain(_vectorstore):
     * 주소: [주소]
     * 주요 시설/특징: [정보]
     **[참고: 사용자 위치 기준 거리는 시스템이 자동으로 계산하여 추가할 것이므로, 이 항목은 제외합니다.]**
-     
+      
 2.  **추천된 관광지를 포함하여, 사용자 정보와 질문에 기반한 {trip_duration_days}일간의 상세 여행 계획을 일자별로 구성해 주세요.**
     * 각 날짜별로 방문할 장소(식당, 카페, 기타 활동 포함), 예상 시간, 간단한 활동 내용을 포함하세요.
     * 예산을 고려하여 적절한 식사 장소나 활동을 제안할 수 있습니다.
@@ -331,13 +331,32 @@ if __name__ == "__main__":
 
     tour_data_df = load_specific_tour_data(TOUR_CSV_FILES) # 인자 제거
 
-    age, travel_style_list, current_user_lat, current_user_lon, \
-    trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "current_input" not in st.session_state:
         st.session_state.current_input = ""
+    if "selected_message_index" not in st.session_state:
+        st.session_state.selected_message_index = None
+
+    # Sidebar for previous conversations
+    with st.sidebar:
+        st.subheader("💡 이전 대화")
+        if st.session_state.messages:
+            for i, m in enumerate(reversed(st.session_state.messages)):
+                display_index = len(st.session_state.messages) - 1 - i
+                role = "🙋‍♂️ 사용자" if m["role"] == "user" else "🤖 챗봇"
+                
+                # Create a clickable button for each message
+                if st.button(f"{role} (대화 {display_index + 1})", key=f"sidebar_msg_{i}"):
+                    st.session_state.selected_message_index = display_index
+                    st.experimental_rerun() # Rerun to display the selected message
+
+        else:
+            st.info("이전 대화가 없습니다.")
+
+    # Main content area
+    age, travel_style_list, current_user_lat, current_user_lon, \
+    trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
 
     st.header("② 질문하기")
     user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
@@ -436,9 +455,11 @@ if __name__ == "__main__":
 
         st.session_state.current_input = ""
 
-    st.subheader("💡 이전 대화")
-    for m in reversed(st.session_state.messages):
-        role = "🙋‍♂️ 사용자" if m["role"] == "user" else "🤖 챗봇"
+    # Display selected previous conversation
+    if st.session_state.selected_message_index is not None:
+        st.subheader("선택된 대화 내용")
+        selected_message = st.session_state.messages[st.session_state.selected_message_index]
+        role = "🙋‍♂️ 사용자" if selected_message["role"] == "user" else "🤖 챗봇"
         st.markdown(f"**{role}:**")
-        st.markdown(m['content'])
+        st.markdown(selected_message['content'])
         st.markdown("---")
