@@ -213,7 +213,7 @@ def get_vectorstore_cached(tour_csv_files_list):
   RecursiveCharacterTextSplitter를 사용하여 문서를 청크로 분할하고, OpenAIEmbeddings()를 사용하여 벡터로 변환하는 과정은 load_and_create_vectorstore_from_specific_files 함수 내에서 이루어집니다.
 
 
-📐 거리 계산 및 사용자 입력 처리
+#📐 거리 계산 및 사용자 입력 처리
 -
 #  Haversine 거리 계산 함수
 haversine(lat1, lon1, lat2, lon2) 함수는 두 지점 간의 거리를 구하는 데 사용되는 **하버사인 공식(Haversine formula)**을 구현한 것입니다. 이는 지구 표면의 두 점 사이의 최단 거리를 구하는 데 유용하며,
