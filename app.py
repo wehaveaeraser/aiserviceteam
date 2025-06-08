@@ -584,14 +584,11 @@ if __name__ == "__main__":
             # st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",  
             #          caption="여행의 시작은 비행기에서부터!",  
             #          use_container_width=True)
+        st.write("""
+            이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 상세한 일자별 여행 계획을 세워줍니다.  
+            이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
+            """)
 
-            st.markdown("""
-                <div style='text-align: center; font-size: 18px;'>
-                    이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고,<br>
-                    상세한 일자별 여행 계획을 세워줍니다.<br>
-                    이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
-                </div>
-            """, unsafe_allow_html=True)
         
         if st.button("🚂여행 계획 시작하기"):
             st.session_state.app_started = True
