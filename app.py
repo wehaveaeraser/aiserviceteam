@@ -586,9 +586,9 @@ if __name__ == "__main__":
             #          use_container_width=True)
 
         st.write("""
-        이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 상세한 일자별 여행 계획을 세워줍니다.  
-        이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
-        """)
+                                    이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 상세한 일자별 여행 계획을 세워줍니다.  
+                                    이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
+            """)
         
         if st.button("🚂여행 계획 시작하기"):
             st.session_state.app_started = True
@@ -650,7 +650,7 @@ if __name__ == "__main__":
             trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
 
             st.header("② 질문하기")
-            user_query = st.text_input("어디로 가고 싶으신가요? (예: 주변 관광지 추천해줘)", value=st.session_state.current_input, key="user_input")
+            user_query = st.text_input("어디로 떠나고 싶으신가요? (예: 주변 관광지 추천해줘)", value=st.session_state.current_input, key="user_input")
 
             if st.button("여행 계획 추천받기"):
                 st.session_state.selected_conversation_index = None
