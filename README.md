@@ -387,7 +387,7 @@ def get_qa_chain(_vectorstore):
 ```
 
 # 🎯 주요 기능 및 특징
--
+
 - ## LLM (Large Language Model) 설정:
  ChatOpenAI(model_name="gpt-4o", temperature=0.7)를 사용하여 OpenAI의 최신 모델인 gpt-4o를 활용합니다. temperature=0.7은 답변의 창의성을 적절하게 조절하여 너무 정형화되지 않으면서도 관련성 높은 결과를 유도합니다.
  
