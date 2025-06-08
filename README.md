@@ -59,7 +59,7 @@
 -
 load_specific_tour_data 함수는 여러 CSV 파일에 분산된 관광지 정보를 통합하고, 필요한 형태로 정제하는 역할을 합니다. @st.cache_data 데코레이터를 사용하여 Streamlit 앱의 성능을 최적화합니다.
 
-
+"""
 @st.cache_data
 def load_specific_tour_data(file_paths_list):
     """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
@@ -119,6 +119,7 @@ def load_specific_tour_data(file_paths_list):
         st.stop()
 
     return combined_df
+    """
 🎯 주요 기능
 -
 - **CSV 파일 통합:**
