@@ -386,12 +386,12 @@ def get_qa_chain(_vectorstore):
 """
 ```
 
-🎯 주요 기능 및 특징
+# 🎯 주요 기능 및 특징
 -
-- # LLM (Large Language Model) 설정:
+- ## LLM (Large Language Model) 설정:
  ChatOpenAI(model_name="gpt-4o", temperature=0.7)를 사용하여 OpenAI의 최신 모델인 gpt-4o를 활용합니다. temperature=0.7은 답변의 창의성을 적절하게 조절하여 너무 정형화되지 않으면서도 관련성 높은 결과를 유도합니다.
  
-- # 동적 프롬프트 구성:
+- ## 동적 프롬프트 구성:
 - 사용자 질의: {input} 변수를 통해 사용자의 직접적인 질문이 포함됩니다.
 검색된 문서 (Context): {context} 변수에 벡터 스토어에서 검색된 관련 관광지 데이터가 삽입됩니다. 이는 LLM이 실제 데이터를 기반으로 답변을 생성하게 하는 핵심 요소입니다.
 
