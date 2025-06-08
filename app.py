@@ -567,7 +567,7 @@ if __name__ == "__main__":
     # 시작 화면
     if not st.session_state.app_started:
         st.title("🚂떠나자! 맞춤형 여행 계획 챗봇")
-        st.markdown("### 당신의 완벽한 여행을 위한 AI 파트너")
+        st.markdown("<h3 style='text-align: center;'>당신의 완벽한 여행을 위한 AI 파트너</h3>", unsafe_allow_html=True)
         
         # PNG 이미지 파일 경로 (예: airplane.png)
         local_image_path = "./train.jpg"  
@@ -585,10 +585,13 @@ if __name__ == "__main__":
             #          caption="여행의 시작은 비행기에서부터!",  
             #          use_container_width=True)
 
-        st.write("""
-                                    이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 상세한 일자별 여행 계획을 세워줍니다.  
-                                    이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
-            """)
+            st.markdown("""
+                <div style='text-align: center; font-size: 18px;'>
+                    이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고,<br>
+                    상세한 일자별 여행 계획을 세워줍니다.<br>
+                    이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
+                </div>
+            """, unsafe_allow_html=True)
         
         if st.button("🚂여행 계획 시작하기"):
             st.session_state.app_started = True
