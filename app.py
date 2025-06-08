@@ -650,7 +650,7 @@ if __name__ == "__main__":
             trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
 
             st.header("② 질문하기")
-            user_query = st.text_input("어떤 여행을 계획하고 계신가요? (예: 가족과 함께 즐길 수 있는 자연 테마 여행)", value=st.session_state.current_input, key="user_input")
+            user_query = st.text_input("어디로 가고 싶으신가요? (예: 주변 관광지 추천해줘)", value=st.session_state.current_input, key="user_input")
 
             if st.button("여행 계획 추천받기"):
                 st.session_state.selected_conversation_index = None
