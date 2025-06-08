@@ -59,33 +59,32 @@
 -
 load_specific_tour_data 함수는 여러 CSV 파일에 분산된 관광지 정보를 통합하고, 필요한 형태로 정제하는 역할을 합니다. @st.cache_data 데코레이터를 사용하여 Streamlit 앱의 성능을 최적화합니다.
 
-'''@st.cache_data
+```python
+@st.cache_data
 def load_specific_tour_data(file_paths_list):
-    #지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다.
+    # 지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다.
     combined_df = pd.DataFrame()
     if not file_paths_list:
-        st.error("로드할 관광지 CSV 파일 경로가 지정되지 않았습니다. `TOUR_CSV_FILES`를 확인해주세요.")
+        st.error("로드할 관광지 CSV 파일 경로가 지정되지 않았습니다. TOUR_CSV_FILES를 확인해주세요.")
         st.stop()
 
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
-            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
+            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜁니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
-        # 'cp494' 오류 수정: 'cp949'로 변경
-        current_encoding = 'cp949'  
+        current_encoding = 'cp949'  # 인코딩 수정
 
         try:
-            # GitHub에 파일이 있다면, Streamlit은 해당 경로에서 파일을 읽어옵니다.
             df = pd.read_csv(file_path, encoding=current_encoding)
             df.columns = df.columns.str.strip()
 
             if "위도" not in df.columns or "경도" not in df.columns:
-                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜱니다.")
+                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜁니다.")
                 continue
 
             name_col = None
-            for candidate in ["관광지명", "관광정보명","관광지"]:
+            for candidate in ["관광지명", "관광정보명", "관광지"]:
                 if candidate in df.columns:
                     name_col = candidate
                     break
@@ -96,7 +95,7 @@ def load_specific_tour_data(file_paths_list):
                 df["관광지명"] = df[name_col]
 
             address_col = None
-            for candidate in ["정제도로명주소","정제지번주소","소재지도로명주소","소재지지번주소","관광지소재지지번주소","관광지소재지도로명주소"]:
+            for candidate in ["정제도로명주소", "정제지번주소", "소재지도로명주소", "소재지지번주소", "관광지소재지지번주소", "관광지소재지도로명주소"]:
                 if candidate in df.columns:
                     address_col = candidate
                     break
@@ -117,7 +116,9 @@ def load_specific_tour_data(file_paths_list):
         st.error("지정된 파일들에서 유효한 관광지 데이터를 불러오지 못했습니다. `TOUR_CSV_FILES`와 파일 내용을 확인해주세요.")
         st.stop()
 
-    return combined_df '''
+    return combined_df
+```
+
 🎯 주요 기능
 -
 - **CSV 파일 통합:**
@@ -149,7 +150,7 @@ FAISS는 대규모 벡터 데이터를 빠르게 검색할 수 있게 해주는 
 아래 코드는 관광지 정보를 벡터화하여 저장하고, 필요할 때 빠르게 로드하거나 새로 생성하는 함수입니다.
 load_and_create_vectorstore_from_specific_files 함수
 이 함수는 지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다.
-
+```python
 @st.cache_resource
 def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다."""
@@ -200,7 +201,7 @@ def get_vectorstore_cached(tour_csv_files_list):
             return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
     else:
         return load_and_create_vectorstore_from_specific_files(tour_csv_files_list)
-
+```
 🎯 주요 기능
 -
 - **캐싱 및 재활용**: @st.cache_resource 데코레이터를 사용하여 벡터스토어 생성 작업을 캐싱합니다. get_vectorstore_cached 함수는 VECTOR_DB_PATH에 벡터스토어가 이미 존재하면 이를 로드하여 불필요한 재계산을 방지합니다.
@@ -218,6 +219,7 @@ def get_vectorstore_cached(tour_csv_files_list):
 haversine(lat1, lon1, lat2, lon2) 함수는 두 지점 간의 거리를 구하는 데 사용되는 **하버사인 공식(Haversine formula)**을 구현한 것입니다. 이는 지구 표면의 두 점 사이의 최단 거리를 구하는 데 유용하며,
 
 # Haversine distance function 
+```python
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371  # Radius of Earth in kilometers
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
@@ -227,6 +229,8 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     distance = R * c
     return distance
+```
+
 # 🎯 주요 기능
 
 - # 지구 반지름:
@@ -239,6 +243,7 @@ def haversine(lat1, lon1, lat2, lon2):
 사용자 입력 및 UI 로직 함수
 -
 get_user_inputs_ui() 함수는 Streamlit을 활용하여 사용자로부터 다양한 여행 관련 정보를 입력받는 UI를 제공합니다. 이 함수를 통해 수집된 정보는 LLM이 사용자 맞춤형 여행 계획을 수립하는 데 중요한 기반 데이터로 활용됩니다
+```python
 def get_user_inputs_ui():
     """사용자로부터 나이, 여행 스타일, 현재 위치, 그리고 추가 여행 계획 정보를 입력받는 UI를 표시합니다."""
     
@@ -292,7 +297,9 @@ def get_user_inputs_ui():
     special_requests = st.text_area("특별히 고려할 사항 (선택 사항)", help="예: 유모차 사용, 고령자 동반, 특정 음식 선호 등", key='special_requests')
 
     return age, travel_style, user_lat_final, user_lon_final, trip_duration_days, estimated_budget, num_travelers, special_requests
-    
+
+```
+
 💡 LLM 프롬프트 구성 및 검색 전략
 -
 이 코드에서 수집된 **사용자의 질의와 검색된 관련 문서 (context)**, 그리고 **get_user_inputs_ui() 함수를 통해 얻은 다양한 사용자 입력(나이, 여행 스타일, 현재 위치 등)**은 gpt-4o LLM의 **동적인 프롬프트**를 구성하는 핵심 요소입니다.
@@ -307,7 +314,7 @@ search_kwargs={"k": 15}: 벡터 스토어에서 검색 시 **가장 유사한 15
 -
 이 섹션은 시스템의 핵심적인 추천 로직을 담당하며, LangChain의 create_retrieval_chain을 활용하여 사용자 질의에 대한 맞춤형 답변을 생성합니다. @st.cache_resource **데코레이터**를 통해 LLM 체인 객체를 효율적으로 캐싱하여 성능을 최적화합니다.
 
-"""
+```python
 @st.cache_resource
 def get_qa_chain(_vectorstore):
     llm = ChatOpenAI(model_name="gpt-4o", temperature=0.7)
@@ -375,7 +382,7 @@ def get_qa_chain(_vectorstore):
 
     return retrieval_chain
 """
-
+```
 
 🎯 주요 기능 및 특징
 -
