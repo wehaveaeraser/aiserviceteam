@@ -63,7 +63,7 @@ load_specific_tour_data 함수는 여러 CSV 파일에 분산된 관광지 정�
 
 @st.cache_data
 def load_specific_tour_data(file_paths_list):
-    """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
+    #지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다.
     combined_df = pd.DataFrame()
     if not file_paths_list:
         st.error("로드할 관광지 CSV 파일 경로가 지정되지 않았습니다. `TOUR_CSV_FILES`를 확인해주세요.")
