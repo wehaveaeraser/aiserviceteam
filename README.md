@@ -205,11 +205,11 @@ def get_vectorstore_cached(tour_csv_files_list):
 🎯 주요 기능
 -
 - **캐싱 및 재활용**: @st.cache_resource 데코레이터를 사용하여 벡터스토어 생성 작업을 캐싱합니다. get_vectorstore_cached 함수는 VECTOR_DB_PATH에 벡터스토어가 이미 존재하면 이를 로드하여 불필요한 재계산을 방지합니다.
-- ## FAISS 로컬 저장 및 로드: 
+- **FAISS 로컬 저장 및 로드:**
 생성된 벡터스토어는 FAISS.save_local()을 통해 지정된 경로에 저장되며, FAISS.load_local()을 통해 다시 로드될 수 있습니다. allow_dangerous_deserialization=True는 최신 FAISS 버전에서 필요한 설정입니다.
-- ## 오류 복구:
+- **오류 복구:**
 기존 벡터스토어 로딩에 실패할 경우, 자동으로 load_and_create_vectorstore_from_specific_files 함수를 호출하여 새로 생성함으로써 시스템의 안정성을 높입니다.
-- ## 텍스트 분할 및 임베딩:
+- **텍스트 분할 및 임베딩:**
   RecursiveCharacterTextSplitter를 사용하여 문서를 청크로 분할하고, OpenAIEmbeddings()를 사용하여 벡터로 변환하는 과정은 load_and_create_vectorstore_from_specific_files 함수 내에서 이루어집니다.
 
 
