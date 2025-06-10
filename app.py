@@ -302,7 +302,7 @@ def setup_environment():
         return api_key
 
 # --- 2. 데이터 로드 및 전처리 함수 ---
-@st.cache_data
+@st.cache_data  #데이터 자체를 캐싱싱
 def load_specific_tour_data(file_paths_list):
     """지정된 CSV 파일 목록을 로드하고, 모든 파일에 CP949 인코딩을 적용하여 병합합니다."""
     combined_df = pd.DataFrame()
@@ -365,7 +365,7 @@ def load_specific_tour_data(file_paths_list):
 
 
 # --- 벡터스토어 로딩 및 캐싱 ---
-@st.cache_resource
+@st.cache_resource  #데이터가 아닌 객체/자원을 캐싱
 def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     """지정된 CSV 파일 목록을 사용하여 벡터스토어를 생성합니다."""
     all_city_tour_docs = []
