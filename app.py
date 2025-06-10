@@ -313,7 +313,7 @@ def load_specific_tour_data(file_paths_list):
 
     for file_path in file_paths_list:
         if not os.path.exists(file_path):
-            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜱니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
+            st.warning(f"'{file_path}' 파일을 찾을 수 없어 건너뜁니다. (Streamlit Cloud에서는 해당 파일들이 Git 리포지토리에 포함되어야 합니다.)")
             continue
 
         # 'cp494' 오류 수정: 'cp949'로 변경
@@ -325,7 +325,7 @@ def load_specific_tour_data(file_paths_list):
             df.columns = df.columns.str.strip()
 
             if "위도" not in df.columns or "경도" not in df.columns:
-                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜱니다.")
+                st.warning(f"'{os.path.basename(file_path)}' 파일은 '위도', '경도' 컬럼이 없어 건너뜁니다.")
                 continue
 
             name_col = None
@@ -371,7 +371,7 @@ def load_and_create_vectorstore_from_specific_files(tour_csv_files_list):
     all_city_tour_docs = []
     for file_path in tour_csv_files_list:
         if not os.path.exists(file_path):
-            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜱니다.")
+            st.warning(f"벡터스토어 생성을 위해 '{file_path}' 파일을 찾을 수 없어 건너뜁니다.")
             continue
 
         current_encoding = 'cp949'  
@@ -425,12 +425,11 @@ def haversine(lat1, lon1, lat2, lon2):
 
 # --- 3. 사용자 입력 및 UI 로직 함수 ---
 def get_user_inputs_ui():
-    """사용자로부터 나이, 여행 스타일, 현재 위치, 그리고 추가 여행 계획 정보를 입력받는 UI를 표시합니다."""
+    """사용자로부터 여행 스타일, 현재 위치, 그리고 추가 여행 계획 정보를 입력받는 UI를 표시합니다."""
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("#### 사용자 정보 입력")
-        # '나이대 선택' selectbox의 너비를 CSS로 조절하기 위해 key를 부여
-        age = st.selectbox("나이대 선택", ["10대", "20대", "30대", "40대", "50대 이상"], key='age_selectbox_new')
+        # '나이대 선택' 제거됨
         travel_style = st.multiselect("여행 스타일", ["자연", "역사", "체험", "휴식", "문화", "가족", "액티비티"], key='travel_style_multiselect')
 
     st.header("① 위치 가져오기")
@@ -475,17 +474,19 @@ def get_user_inputs_ui():
     num_travelers = st.number_input("여행 인원 (명)", min_value=1, value=2, key='num_travelers')
     special_requests = st.text_area("특별히 고려할 사항 (선택 사항)", help="예: 유모차 사용, 고령자 동반, 특정 음식 선호 등", key='special_requests')
 
-    return age, travel_style, user_lat_final, user_lon_final, trip_duration_days, estimated_budget, num_travelers, special_requests
+    # age 반환값 제거됨
+    return travel_style, user_lat_final, user_lon_final, trip_duration_days, estimated_budget, num_travelers, special_requests
 
 # --- 4. 추천 로직 함수 (Langchain API 변경: create_retrieval_chain 사용) (프롬프트 수정) ---
 @st.cache_resource
 def get_qa_chain(_vectorstore):
     llm = ChatOpenAI(model_name="gpt-4o", temperature=0.7)
 
+    # 프롬프트에서 '나이대' 관련 내용 제거됨
     qa_prompt = PromptTemplate.from_template(
         """
 당신은 사용자 위치 기반 여행지 추천 및 상세 여행 계획 수립 챗봇입니다.
-사용자의 나이대, 여행 성향, 현재 위치 정보, 그리고 다음의 추가 정보를 참고하여 사용자가 입력한 질문에 가장 적합한 관광지를 추천하고, 이를 바탕으로 상세한 여행 계획을 수립해 주세요.
+사용자의 여행 성향, 현재 위치 정보, 그리고 다음의 추가 정보를 참고하여 사용자가 입력한 질문에 가장 적합한 관광지를 추천하고, 이를 바탕으로 상세한 여행 계획을 수립해 주세요.
 **관광지 추천 시 사용자 위치로부터의 거리는 시스템이 자동으로 계산하여 추가할 것이므로, 답변에서 거리를 직접 언급하지 마십시오.**
 특히, 사용자의 현재 위치({user_lat}, {user_lon})에서 가까운 장소들을 우선적으로 고려하여 추천하고 계획을 세워주세요.
 꼭꼭 사용자 현재 위치와 가까운 곳을 최우선으로 해주고 사용자가 선택한 성향에 맞게 추천해주세요.
@@ -494,7 +495,6 @@ def get_qa_chain(_vectorstore):
 {context}
 
 [사용자 정보]
-나이대: {age}
 여행 성향: {travel_style}
 현재 위치 (위도, 경도): {user_lat}, {user_lon}
 여행 기간: {trip_duration_days}일
@@ -582,12 +582,12 @@ if __name__ == "__main__":
             st.warning(f"시작 화면 이미지를 찾을 수 없습니다: {local_image_path}") #
             # 또는 대체 URL 이미지를 사용할 수도 있습니다.
             # st.image("https://images.unsplash.com/photo-1542171124-ed989b5c3ee5?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",  
-            #          caption="여행의 시작은 비행기에서부터!",  
-            #          use_container_width=True)
+            #         caption="여행의 시작은 비행기에서부터!",  
+            #         use_container_width=True)
         st.write("""
-            이 챗봇은 당신의 나이대, 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 상세한 일자별 여행 계획을 세워줍니다.  
-            이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
-            """)
+             이 챗봇은 당신의 여행 스타일, 현재 위치를 기반으로 최적의 관광지를 추천하고, 상세한 일자별 여행 계획을 세워줍니다.  
+             이제 번거로운 계획은 AI에게 맡기고 즐거운 여행만 준비하세요!
+             """)
 
         
         if st.button("🚂여행 계획 시작하기"):
@@ -646,7 +646,8 @@ if __name__ == "__main__":
                 st.rerun()
 
         else: # 이전 대화가 선택되지 않은 경우 (새로운 질문 입력 상태)
-            age, travel_style_list, current_user_lat, current_user_lon, \
+            # age 변수 제거됨
+            travel_style_list, current_user_lat, current_user_lon, \
             trip_duration_days, estimated_budget, num_travelers, special_requests = get_user_inputs_ui()
 
             st.header("② 질문하기")
@@ -658,7 +659,7 @@ if __name__ == "__main__":
                 lat_to_invoke = current_user_lat
                 lon_to_invoke = current_user_lon
 
-                age_to_invoke = age
+                # age_to_invoke 변수 제거됨
                 travel_style_to_invoke = ', '.join(travel_style_list) if travel_style_list else '특정 없음'
                 trip_duration_days_to_invoke = trip_duration_days
                 estimated_budget_to_invoke = estimated_budget
@@ -672,9 +673,9 @@ if __name__ == "__main__":
                 else:
                     with st.spinner("최적의 여행 계획을 수립 중입니다..."):
                         try:
+                            # invoke 호출에서 'age' 인자 제거됨
                             response = qa_chain.invoke({
                                 "input": user_query,
-                                "age": age_to_invoke,
                                 "travel_style": travel_style_to_invoke,
                                 "user_lat": lat_to_invoke,
                                 "user_lon": lon_to_invoke,
@@ -762,7 +763,6 @@ if __name__ == "__main__":
                                             else:
                                                 st.warning("여행 계획 테이블의 행과 열의 수가 일치하지 않아 표를 생성할 수 없습니다. LLM 응답 형식을 확인해주세요.")
                                         else:
-                                        #
                                             st.warning("여행 계획 테이블 내용을 파싱할 수 없습니다. LLM이 요청된 표 형식을 따르지 않았을 수 있습니다.")
                                     else:
                                         st.warning("여행 계획이 유효한 표 형식으로 제공되지 않았습니다.")
